@@ -20,6 +20,12 @@ RUN npm ci
 # Copy the rest of the app
 COPY . .
 
+# Build args - Render passes env vars as build args
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 # Build the app
 RUN npm run build
 

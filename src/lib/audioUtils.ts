@@ -22,7 +22,9 @@ export async function extractAudioMetadata(
     // Extract cover art if available
     if (metadata.common.picture && metadata.common.picture.length > 0) {
       const picture = metadata.common.picture[0];
-      const blob = new Blob([picture.data], { type: picture.format });
+      // Convert Buffer to Uint8Array for Blob compatibility
+      const uint8Array = new Uint8Array(picture.data);
+      const blob = new Blob([uint8Array], { type: picture.format });
       coverUrl = URL.createObjectURL(blob);
     }
     
