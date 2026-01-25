@@ -92,73 +92,116 @@ export function Player() {
   const totalTracks = queue.length;
 
   return (
-    <footer className="h-auto md:h-20 bg-player-bg border-t border-border px-3 md:px-4 py-2 md:py-0 flex flex-col md:flex-row md:items-center gap-2 md:gap-0">
-      {/* Mobile: Song info + controls row */}
-      <div className="flex items-center w-full md:w-[30%] md:min-w-[180px]">
-        {/* Album art */}
-        <div className="w-12 h-12 md:w-14 md:h-14 bg-background-tinted rounded flex items-center justify-center flex-shrink-0">
-          {currentSong.cover_url ? (
-            <img
-              src={currentSong.cover_url}
-              alt={currentSong.title}
-              className="w-full h-full object-cover rounded"
-            />
-          ) : (
-            <svg
-              className="w-5 h-5 md:w-6 md:h-6 text-foreground-subdued"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
-            </svg>
-          )}
-        </div>
-        <div className="min-w-0 ml-3 flex-1">
-          <p className="text-white text-sm font-medium truncate">
-            {currentSong.title}
-          </p>
-          <p className="text-foreground-subdued text-xs truncate">
-            {currentSong.artist || "Unknown artist"}
-          </p>
+    <footer className="bg-player-bg border-t border-border">
+      {/* Mobile Layout */}
+      <div className="md:hidden">
+        {/* Progress bar at top for mobile */}
+        <div
+          className="w-full h-1 bg-progress-bar cursor-pointer"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const percent = (e.clientX - rect.left) / rect.width;
+            seek(percent * duration);
+          }}
+        >
+          <div
+            className="h-full bg-spotify-green"
+            style={{ width: `${progress}%` }}
+          />
         </div>
         
-        {/* Mobile play controls */}
-        <div className="flex md:hidden items-center gap-2">
-          <button
-            onClick={previous}
-            className="w-10 h-10 flex items-center justify-center text-white"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M3.3 1a.7.7 0 01.7.7v5.15l9.95-5.744a.7.7 0 011.05.606v12.575a.7.7 0 01-1.05.607L4 9.149V14.3a.7.7 0 01-.7.7H1.7a.7.7 0 01-.7-.7V1.7a.7.7 0 01.7-.7h1.6z" />
-            </svg>
-          </button>
-          <button
-            onClick={handlePlayClick}
-            className="w-10 h-10 bg-white rounded-full flex items-center justify-center"
-          >
-            {isPlaying ? (
-              <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7H2.7zm8 0a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-2.6z" />
+        {/* Mobile player content */}
+        <div className="flex items-center justify-between px-3 py-2 gap-2">
+          {/* Song info - left side */}
+          <div className="flex items-center min-w-0 flex-1 gap-3">
+            <div className="w-10 h-10 bg-background-tinted rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+              {currentSong.cover_url ? (
+                <img
+                  src={currentSong.cover_url}
+                  alt={currentSong.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <svg className="w-5 h-5 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
+                </svg>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-white text-sm font-medium truncate leading-tight">
+                {currentSong.title}
+              </p>
+              <p className="text-foreground-subdued text-xs truncate leading-tight">
+                {currentSong.artist || "Unknown"}
+              </p>
+            </div>
+          </div>
+          
+          {/* Mobile controls - right side */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={previous}
+              className="w-11 h-11 flex items-center justify-center text-white active:scale-95"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M3.3 1a.7.7 0 01.7.7v5.15l9.95-5.744a.7.7 0 011.05.606v12.575a.7.7 0 01-1.05.607L4 9.149V14.3a.7.7 0 01-.7.7H1.7a.7.7 0 01-.7-.7V1.7a.7.7 0 01.7-.7h1.6z" />
               </svg>
-            ) : (
-              <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
+            </button>
+            <button
+              onClick={handlePlayClick}
+              className="w-12 h-12 bg-white rounded-full flex items-center justify-center active:scale-95"
+            >
+              {isPlaying ? (
+                <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7H2.7zm8 0a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-2.6z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={handleNextClick}
+              className="w-11 h-11 flex items-center justify-center text-white active:scale-95"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z" />
               </svg>
-            )}
-          </button>
-          <button
-            onClick={handleNextClick}
-            className="w-10 h-10 flex items-center justify-center text-white"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z" />
-            </svg>
-          </button>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Desktop: Player controls - Center */}
-      <div className="hidden md:flex flex-1 max-w-[722px] flex-col items-center">
+      {/* Desktop Layout */}
+      <div className="hidden md:flex h-20 px-4 items-center">
+        {/* Left - Song info */}
+        <div className="flex items-center w-[30%] min-w-[180px]">
+          <div className="w-14 h-14 bg-background-tinted rounded flex items-center justify-center flex-shrink-0">
+            {currentSong.cover_url ? (
+              <img
+                src={currentSong.cover_url}
+                alt={currentSong.title}
+                className="w-full h-full object-cover rounded"
+              />
+            ) : (
+              <svg className="w-6 h-6 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
+              </svg>
+            )}
+          </div>
+          <div className="min-w-0 ml-3 flex-1">
+            <p className="text-white text-sm font-medium truncate">
+              {currentSong.title}
+            </p>
+            <p className="text-foreground-subdued text-xs truncate">
+              {currentSong.artist || "Unknown artist"}
+            </p>
+          </div>
+        </div>
+
+        {/* Center - Player controls */}
+        <div className="flex-1 max-w-[722px] flex flex-col items-center">
         {/* Control buttons */}
         <div className="flex items-center gap-4 mb-2">
           {/* Shuffle */}
@@ -259,65 +302,51 @@ export function Player() {
         </div>
       </div>
 
-      {/* Right controls - Desktop only */}
-      <div className="hidden md:flex w-[30%] min-w-[180px] items-center justify-end gap-3">
-        {/* Track number */}
-        {totalTracks > 1 && (
-          <span className="text-xs text-foreground-subdued">
-            {trackNumber} of {totalTracks}
-          </span>
-        )}
+        {/* Right controls */}
+        <div className="w-[30%] min-w-[180px] flex items-center justify-end gap-3">
+          {/* Track number */}
+          {totalTracks > 1 && (
+            <span className="text-xs text-foreground-subdued">
+              {trackNumber} of {totalTracks}
+            </span>
+          )}
 
-        {/* Volume */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleMute}
-            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
-            title={isMuted ? "Unmute" : "Mute"}
-          >
-            {isMuted || volume === 0 ? (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M13.86 5.47a.75.75 0 00-1.061 0l-1.47 1.47-1.47-1.47A.75.75 0 008.8 6.53L10.269 8l-1.47 1.47a.75.75 0 101.06 1.06l1.47-1.47 1.47 1.47a.75.75 0 001.06-1.06L12.39 8l1.47-1.47a.75.75 0 000-1.06z" />
-                <path d="M10.116 1.5A.75.75 0 008.991.85l-6.925 4a3.642 3.642 0 00-1.33 4.967 3.639 3.639 0 001.33 1.332l6.925 4a.75.75 0 001.125-.649v-1.906a4.73 4.73 0 01-1.5-.694v1.3L2.817 9.852a2.141 2.141 0 01-.781-2.92c.187-.324.456-.594.78-.782l5.8-3.35v1.3c.45-.313.956-.55 1.5-.694V1.5z" />
-              </svg>
-            ) : volume < 0.5 ? (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 6.087a4.502 4.502 0 000-8.474v1.65a2.999 2.999 0 010 5.175v1.649z" />
-              </svg>
-            )}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={isMuted ? 0 : volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className="w-24 h-1 rounded-full appearance-none cursor-pointer"
-            style={{
-              background: `linear-gradient(to right, var(--foreground) ${(isMuted ? 0 : volume) * 100}%, var(--progress-bar) ${(isMuted ? 0 : volume) * 100}%)`,
-            }}
-          />
+          {/* Volume */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted || volume === 0 ? (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M13.86 5.47a.75.75 0 00-1.061 0l-1.47 1.47-1.47-1.47A.75.75 0 008.8 6.53L10.269 8l-1.47 1.47a.75.75 0 101.06 1.06l1.47-1.47 1.47 1.47a.75.75 0 001.06-1.06L12.39 8l1.47-1.47a.75.75 0 000-1.06z" />
+                  <path d="M10.116 1.5A.75.75 0 008.991.85l-6.925 4a3.642 3.642 0 00-1.33 4.967 3.639 3.639 0 001.33 1.332l6.925 4a.75.75 0 001.125-.649v-1.906a4.73 4.73 0 01-1.5-.694v1.3L2.817 9.852a2.141 2.141 0 01-.781-2.92c.187-.324.456-.594.78-.782l5.8-3.35v1.3c.45-.313.956-.55 1.5-.694V1.5z" />
+                </svg>
+              ) : volume < 0.5 ? (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 6.087a4.502 4.502 0 000-8.474v1.65a2.999 2.999 0 010 5.175v1.649z" />
+                </svg>
+              )}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={isMuted ? 0 : volume}
+              onChange={(e) => setVolume(Number(e.target.value))}
+              className="w-24 h-1 rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, var(--foreground) ${(isMuted ? 0 : volume) * 100}%, var(--progress-bar) ${(isMuted ? 0 : volume) * 100}%)`,
+              }}
+            />
+          </div>
         </div>
-      </div>
-
-      {/* Mobile progress bar */}
-      <div
-        className="md:hidden w-full h-1 bg-progress-bar rounded-full overflow-hidden cursor-pointer"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const percent = (e.clientX - rect.left) / rect.width;
-          seek(percent * duration);
-        }}
-      >
-        <div
-          className="h-full bg-spotify-green transition-all"
-          style={{ width: `${progress}%` }}
-        />
       </div>
     </footer>
   );
