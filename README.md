@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal Music Library (Spotify Clone)
+
+A personal music library PWA that looks and works like Spotify. Upload your own audio files, create playlists, and listen offline.
+
+## Features
+
+- **Spotify-like UI** - Dark theme, sidebar navigation, bottom player bar
+- **Drag & drop uploads** - Just drop your audio files to add them
+- **Audio playback** - Play/pause, next/previous, progress bar, volume control
+- **Shuffle & repeat modes** - All playback options you'd expect
+- **Playlists** - Create, rename, delete playlists; add/remove songs
+- **Offline support** - PWA with offline caching for downloaded songs
+- **Mobile & Desktop** - Responsive design + installable PWA
+
+## Tech Stack
+
+- **Frontend**: Next.js 14 (App Router), React, TypeScript
+- **Styling**: Tailwind CSS v4
+- **Backend**: Supabase (Auth, Database, Storage)
+- **PWA**: next-pwa for service worker generation
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone and install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up Supabase
+
+1. Create a new project at [supabase.com](https://supabase.com)
+2. Go to the SQL Editor and run the scripts in `/supabase/schema.sql` and `/supabase/storage.sql`
+3. Copy your project URL and anon key from Settings > API
+
+### 3. Configure environment variables
+
+Copy `env.example` to `.env.local` and fill in your Supabase credentials:
+
+```bash
+cp env.example .env.local
+```
+
+Edit `.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to use the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supported Audio Formats
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- MP3
+- WAV
+- OGG
+- FLAC
+- M4A
+- AAC
+- WebM
+- Opus
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── (main)/           # Authenticated routes with main layout
+│   │   ├── page.tsx      # Home/library view
+│   │   └── playlist/     # Playlist pages
+│   ├── login/            # Login page
+│   ├── signup/           # Signup page
+│   └── auth/callback/    # OAuth callback handler
+├── components/
+│   ├── MainLayout.tsx    # App shell with sidebar + player
+│   ├── Player.tsx        # Bottom player bar
+│   ├── Sidebar.tsx       # Left navigation
+│   ├── SongList.tsx      # Song list component
+│   ├── TrackRow.tsx      # Individual song row
+│   └── UploadZone.tsx    # Drag & drop upload area
+├── context/
+│   └── PlayerContext.tsx # Global audio player state
+├── hooks/
+│   └── useAuth.ts        # Auth hook
+└── lib/
+    ├── supabase.ts       # Supabase client
+    ├── audioUtils.ts     # Audio metadata extraction
+    └── offlineStorage.ts # IndexedDB for offline caching
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is a personal project. Not affiliated with Spotify.

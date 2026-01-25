@@ -1,0 +1,324 @@
+"use client";
+
+import { useCallback } from "react";
+import { usePlayer } from "@/context/PlayerContext";
+import { formatDuration } from "@/lib/audioUtils";
+import { createClient, Song } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+
+export function Player() {
+  const {
+    currentSong,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    shuffle,
+    repeat,
+    queue,
+    currentIndex,
+    togglePlay,
+    previous,
+    next,
+    seek,
+    setVolume,
+    toggleMute,
+    toggleShuffle,
+    cycleRepeat,
+    playQueue,
+  } = usePlayer();
+
+  const { user } = useAuth();
+  const supabase = createClient();
+
+  // Play a random song from library when nothing is playing
+  const playRandomFromLibrary = useCallback(async () => {
+    if (!user) return;
+
+    const { data: songs } = await supabase
+      .from("songs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (songs && songs.length > 0) {
+      const randomIndex = Math.floor(Math.random() * songs.length);
+      playQueue(songs as Song[], randomIndex);
+    }
+  }, [user, supabase, playQueue]);
+
+  // Handle play button when nothing is playing
+  const handlePlayClick = () => {
+    if (currentSong) {
+      togglePlay();
+    } else {
+      playRandomFromLibrary();
+    }
+  };
+
+  // Handle next button when nothing is playing
+  const handleNextClick = () => {
+    if (currentSong) {
+      next();
+    } else {
+      playRandomFromLibrary();
+    }
+  };
+
+  // Show minimal player if nothing is playing
+  if (!currentSong) {
+    return (
+      <footer className="h-20 bg-player-bg border-t border-border px-4 flex items-center justify-center">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={playRandomFromLibrary}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+            title="Play random song"
+          >
+            <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
+            </svg>
+          </button>
+          <p className="text-foreground-muted text-sm">
+            Click to play a random song
+          </p>
+        </div>
+      </footer>
+    );
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const trackNumber = currentIndex + 1;
+  const totalTracks = queue.length;
+
+  return (
+    <footer className="h-auto md:h-20 bg-player-bg border-t border-border px-3 md:px-4 py-2 md:py-0 flex flex-col md:flex-row md:items-center gap-2 md:gap-0">
+      {/* Mobile: Song info + controls row */}
+      <div className="flex items-center w-full md:w-[30%] md:min-w-[180px]">
+        {/* Album art */}
+        <div className="w-12 h-12 md:w-14 md:h-14 bg-background-tinted rounded flex items-center justify-center flex-shrink-0">
+          {currentSong.cover_url ? (
+            <img
+              src={currentSong.cover_url}
+              alt={currentSong.title}
+              className="w-full h-full object-cover rounded"
+            />
+          ) : (
+            <svg
+              className="w-5 h-5 md:w-6 md:h-6 text-foreground-subdued"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
+            </svg>
+          )}
+        </div>
+        <div className="min-w-0 ml-3 flex-1">
+          <p className="text-white text-sm font-medium truncate">
+            {currentSong.title}
+          </p>
+          <p className="text-foreground-subdued text-xs truncate">
+            {currentSong.artist || "Unknown artist"}
+          </p>
+        </div>
+        
+        {/* Mobile play controls */}
+        <div className="flex md:hidden items-center gap-2">
+          <button
+            onClick={previous}
+            className="w-10 h-10 flex items-center justify-center text-white"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M3.3 1a.7.7 0 01.7.7v5.15l9.95-5.744a.7.7 0 011.05.606v12.575a.7.7 0 01-1.05.607L4 9.149V14.3a.7.7 0 01-.7.7H1.7a.7.7 0 01-.7-.7V1.7a.7.7 0 01.7-.7h1.6z" />
+            </svg>
+          </button>
+          <button
+            onClick={handlePlayClick}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center"
+          >
+            {isPlaying ? (
+              <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7H2.7zm8 0a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-2.6z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={handleNextClick}
+            className="w-10 h-10 flex items-center justify-center text-white"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop: Player controls - Center */}
+      <div className="hidden md:flex flex-1 max-w-[722px] flex-col items-center">
+        {/* Control buttons */}
+        <div className="flex items-center gap-4 mb-2">
+          {/* Shuffle */}
+          <button
+            onClick={toggleShuffle}
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${
+              shuffle ? "text-spotify-green" : "text-foreground-subdued hover:text-white"
+            }`}
+            title={shuffle ? "Disable shuffle" : "Enable shuffle"}
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M13.151.922a.75.75 0 10-1.06 1.06L13.109 3H11.16a3.75 3.75 0 00-2.873 1.34l-6.173 7.356A2.25 2.25 0 01.39 12.5H0V14h.391a3.75 3.75 0 002.873-1.34l6.173-7.356a2.25 2.25 0 011.724-.804h1.947l-1.017 1.018a.75.75 0 001.06 1.06l2.306-2.306a.75.75 0 000-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 00.39 3.5z" />
+              <path d="M7.5 10.723l.98-1.167.957 1.14a2.25 2.25 0 001.724.804h1.947l-1.017-1.018a.75.75 0 111.06-1.06l2.306 2.306a.75.75 0 010 1.06l-2.306 2.306a.75.75 0 11-1.06-1.06L13.109 13H11.16a3.75 3.75 0 01-2.873-1.34l-.787-.938z" />
+            </svg>
+          </button>
+
+          {/* Previous */}
+          <button
+            onClick={previous}
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Previous"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M3.3 1a.7.7 0 01.7.7v5.15l9.95-5.744a.7.7 0 011.05.606v12.575a.7.7 0 01-1.05.607L4 9.149V14.3a.7.7 0 01-.7.7H1.7a.7.7 0 01-.7-.7V1.7a.7.7 0 01.7-.7h1.6z" />
+            </svg>
+          </button>
+
+          {/* Play/Pause */}
+          <button
+            onClick={handlePlayClick}
+            className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+            title={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? (
+              <svg className="w-4 h-4 text-black" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7H2.7zm8 0a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-2.6z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4 text-black ml-0.5" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
+              </svg>
+            )}
+          </button>
+
+          {/* Next */}
+          <button
+            onClick={handleNextClick}
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Next"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z" />
+            </svg>
+          </button>
+
+          {/* Repeat */}
+          <button
+            onClick={cycleRepeat}
+            className={`w-8 h-8 flex items-center justify-center transition-colors relative ${
+              repeat !== "off" ? "text-spotify-green" : "text-foreground-subdued hover:text-white"
+            }`}
+            title={`Repeat: ${repeat}`}
+          >
+            {repeat === "one" ? (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M0 4.75A3.75 3.75 0 013.75 1h.75v1.5h-.75A2.25 2.25 0 001.5 4.75v5A2.25 2.25 0 003.75 12H5v1.5H3.75A3.75 3.75 0 010 9.75v-5zM12.25 2.5h-.75V1h.75A3.75 3.75 0 0116 4.75v5a3.75 3.75 0 01-3.75 3.75H10.5V12h1.75a2.25 2.25 0 002.25-2.25v-5a2.25 2.25 0 00-2.25-2.25z" />
+                <path d="M4.75 6.5a.75.75 0 01.75.75V9.5h.75a.75.75 0 010 1.5H4a.75.75 0 01-.75-.75V7.25a.75.75 0 01.75-.75zM12.25.5l2.5 2-2.5 2V.5zm-8.5 15l-2.5-2 2.5-2v4z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M0 4.75A3.75 3.75 0 013.75 1h8.5A3.75 3.75 0 0116 4.75v5a3.75 3.75 0 01-3.75 3.75H5.5l1.97 1.97a.75.75 0 11-1.06 1.06L2.97 13.1a.75.75 0 010-1.06l3.44-3.44a.75.75 0 111.06 1.06L5.5 12h6.75a2.25 2.25 0 002.25-2.25v-5A2.25 2.25 0 0012.25 2.5h-8.5a2.25 2.25 0 00-2.25 2.25v5A2.25 2.25 0 003.75 12H4v1.5h-.25A3.75 3.75 0 010 9.75v-5z" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full flex items-center gap-2">
+          <span className="text-xs text-foreground-subdued w-10 text-right">
+            {formatDuration(currentTime)}
+          </span>
+          <div className="flex-1 group relative">
+            <input
+              type="range"
+              min={0}
+              max={duration || 100}
+              value={currentTime}
+              onChange={(e) => seek(Number(e.target.value))}
+              className="w-full h-1 rounded-full appearance-none cursor-pointer"
+              style={{
+                background: `linear-gradient(to right, var(--spotify-green) ${progress}%, var(--progress-bar) ${progress}%)`,
+              }}
+            />
+          </div>
+          <span className="text-xs text-foreground-subdued w-10">
+            {formatDuration(duration)}
+          </span>
+        </div>
+      </div>
+
+      {/* Right controls - Desktop only */}
+      <div className="hidden md:flex w-[30%] min-w-[180px] items-center justify-end gap-3">
+        {/* Track number */}
+        {totalTracks > 1 && (
+          <span className="text-xs text-foreground-subdued">
+            {trackNumber} of {totalTracks}
+          </span>
+        )}
+
+        {/* Volume */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleMute}
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted || volume === 0 ? (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M13.86 5.47a.75.75 0 00-1.061 0l-1.47 1.47-1.47-1.47A.75.75 0 008.8 6.53L10.269 8l-1.47 1.47a.75.75 0 101.06 1.06l1.47-1.47 1.47 1.47a.75.75 0 001.06-1.06L12.39 8l1.47-1.47a.75.75 0 000-1.06z" />
+                <path d="M10.116 1.5A.75.75 0 008.991.85l-6.925 4a3.642 3.642 0 00-1.33 4.967 3.639 3.639 0 001.33 1.332l6.925 4a.75.75 0 001.125-.649v-1.906a4.73 4.73 0 01-1.5-.694v1.3L2.817 9.852a2.141 2.141 0 01-.781-2.92c.187-.324.456-.594.78-.782l5.8-3.35v1.3c.45-.313.956-.55 1.5-.694V1.5z" />
+              </svg>
+            ) : volume < 0.5 ? (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 4.29V5.56a2.75 2.75 0 010 4.88z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M9.741.85a.75.75 0 01.375.65v13a.75.75 0 01-1.125.65l-6.925-4a3.642 3.642 0 01-1.33-4.967 3.639 3.639 0 011.33-1.332l6.925-4a.75.75 0 01.75 0zm-6.924 5.3a2.139 2.139 0 000 3.7l5.8 3.35V2.8l-5.8 3.35zm8.683 6.087a4.502 4.502 0 000-8.474v1.65a2.999 2.999 0 010 5.175v1.649z" />
+              </svg>
+            )}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.01}
+            value={isMuted ? 0 : volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-24 h-1 rounded-full appearance-none cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, var(--foreground) ${(isMuted ? 0 : volume) * 100}%, var(--progress-bar) ${(isMuted ? 0 : volume) * 100}%)`,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Mobile progress bar */}
+      <div
+        className="md:hidden w-full h-1 bg-progress-bar rounded-full overflow-hidden cursor-pointer"
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const percent = (e.clientX - rect.left) / rect.width;
+          seek(percent * duration);
+        }}
+      >
+        <div
+          className="h-full bg-spotify-green transition-all"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </footer>
+  );
+}
