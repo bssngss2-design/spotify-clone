@@ -22,9 +22,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Common yt-dlp options to bypass restrictions
+    const ytdlpOpts = [
+      '--no-check-certificates',
+      '--no-cache-dir',
+      '--extractor-args', '"youtube:player_client=web"',
+      '--user-agent', '"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"'
+    ].join(' ');
+
     // Use yt-dlp to search YouTube and get JSON results
     const { stdout } = await execAsync(
-      `yt-dlp "ytsearch10:${query.replace(/"/g, '\\"')}" --dump-json --flat-playlist --no-download`,
+      `yt-dlp "ytsearch10:${query.replace(/"/g, '\\"')}" --dump-json --flat-playlist --no-download ${ytdlpOpts}`,
       { maxBuffer: 10 * 1024 * 1024 }
     );
 

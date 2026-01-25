@@ -41,11 +41,19 @@ export async function POST(request: NextRequest) {
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
+    // Common yt-dlp options to bypass restrictions
+    const ytdlpOpts = [
+      '--no-check-certificates',
+      '--no-cache-dir', 
+      '--extractor-args', '"youtube:player_client=web"',
+      '--user-agent', '"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"'
+    ].join(' ');
+
     // Download audio as MP3 and thumbnail
     console.log(`Downloading: ${videoUrl}`);
     
     const { stdout: infoJson } = await execAsync(
-      `yt-dlp "${videoUrl}" --dump-json --no-download`,
+      `yt-dlp "${videoUrl}" --dump-json --no-download ${ytdlpOpts}`,
       { maxBuffer: 10 * 1024 * 1024 }
     );
     
@@ -57,8 +65,8 @@ export async function POST(request: NextRequest) {
 
     // Download the audio
     await execAsync(
-      `yt-dlp "${videoUrl}" -x --audio-format mp3 --audio-quality 0 -o "${outputPath}" --no-playlist`,
-      { maxBuffer: 10 * 1024 * 1024, timeout: 120000 }
+      `yt-dlp "${videoUrl}" -x --audio-format mp3 --audio-quality 0 -o "${outputPath}" --no-playlist ${ytdlpOpts}`,
+      { maxBuffer: 10 * 1024 * 1024, timeout: 180000 }
     );
 
     // Download thumbnail
