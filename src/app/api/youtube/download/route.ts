@@ -9,13 +9,16 @@ import { v4 as uuidv4 } from "uuid";
 
 const execAsync = promisify(exec);
 
-// Create admin client with service role key (bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Create admin client lazily to avoid build-time errors
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdmin();
   try {
     const { videoId, title, userId } = await request.json();
 
