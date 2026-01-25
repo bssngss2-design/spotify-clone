@@ -3,10 +3,12 @@ services:
     name: spotify-clone
     runtime: docker
     plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     envVars:
       - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
+        sync: true  # Sync to build args
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        sync: false
+        sync: true  # Sync to build args
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
