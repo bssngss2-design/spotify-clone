@@ -26,8 +26,10 @@ export async function GET(request: NextRequest) {
     const ytdlpOpts = [
       '--no-check-certificates',
       '--no-cache-dir',
-      '--extractor-args', '"youtube:player_client=web"',
-      '--user-agent', '"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"'
+      '--extractor-args', '"youtube:player_client=android,ios"',
+      '--force-ipv4',
+      '--geo-bypass',
+      '--user-agent', '"com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"'
     ].join(' ');
 
     // Use yt-dlp to search YouTube and get JSON results
