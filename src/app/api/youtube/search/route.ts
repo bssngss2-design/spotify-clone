@@ -22,14 +22,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Common yt-dlp options to bypass restrictions
+    // Keep search simple - no special player clients needed for flat playlist search
     const ytdlpOpts = [
       '--no-check-certificates',
       '--no-cache-dir',
-      '--extractor-args', '"youtube:player_client=android,ios"',
-      '--force-ipv4',
-      '--geo-bypass',
-      '--user-agent', '"com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"'
     ].join(' ');
 
     // Use yt-dlp to search YouTube and get JSON results
