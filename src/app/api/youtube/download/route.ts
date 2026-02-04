@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
     const songId = uuidv4();
     const tempDir = "/tmp/yt-downloads";
     const outputPath = path.join(tempDir, `${songId}.mp3`);
-    const thumbnailPath = path.join(tempDir, `${songId}.jpg`);
 
     // Ensure temp directory exists
     if (!existsSync(tempDir)) {
@@ -41,23 +40,48 @@ export async function POST(request: NextRequest) {
 
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
+    // Try multiple player clients - tv_embedded and web_creator tend to bypass bot detection better
+    const playerClients = ['tv_embedded', 'web_creator', 'mweb', 'android_vr'];
+    
     // Common yt-dlp options to bypass restrictions
-    const ytdlpOpts = [
+    const getYtdlpOpts = (client: string) => [
       '--no-check-certificates',
       '--no-cache-dir', 
-      '--extractor-args', '"youtube:player_client=android,ios"',
+      '--extractor-args', `"youtube:player_client=${client}"`,
       '--force-ipv4',
       '--geo-bypass',
-      '--user-agent', '"com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"'
+      '--no-warnings',
+      '--prefer-free-formats',
     ].join(' ');
 
     // Download audio as MP3 and thumbnail
     console.log(`Downloading: ${videoUrl}`);
     
-    const { stdout: infoJson } = await execAsync(
-      `yt-dlp "${videoUrl}" --dump-json --no-download ${ytdlpOpts}`,
-      { maxBuffer: 10 * 1024 * 1024 }
-    );
+    // Try each player client until one works
+    let infoJson = '';
+    let workingClient = '';
+    
+    for (const client of playerClients) {
+      try {
+        console.log(`Trying player client: ${client}`);
+        const opts = getYtdlpOpts(client);
+        const result = await execAsync(
+          `yt-dlp "${videoUrl}" --dump-json --no-download ${opts}`,
+          { maxBuffer: 10 * 1024 * 1024, timeout: 30000 }
+        );
+        infoJson = result.stdout;
+        workingClient = client;
+        console.log(`Success with player client: ${client}`);
+        break;
+      } catch (e) {
+        console.log(`Player client ${client} failed, trying next...`);
+        if (client === playerClients[playerClients.length - 1]) {
+          throw e; // Re-throw if all clients failed
+        }
+      }
+    }
+    
+    const ytdlpOpts = getYtdlpOpts(workingClient);
     
     const videoInfo = JSON.parse(infoJson);
     const duration = Math.round(videoInfo.duration || 0);
@@ -75,7 +99,7 @@ export async function POST(request: NextRequest) {
     let coverUrl: string | null = null;
     try {
       await execAsync(
-        `yt-dlp "${videoUrl}" --write-thumbnail --skip-download -o "${tempDir}/${songId}" --no-playlist`,
+        `yt-dlp "${videoUrl}" --write-thumbnail --skip-download -o "${tempDir}/${songId}" --no-playlist ${ytdlpOpts}`,
         { maxBuffer: 10 * 1024 * 1024 }
       );
       
