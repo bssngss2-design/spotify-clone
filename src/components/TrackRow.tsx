@@ -13,7 +13,7 @@ interface TrackRowProps {
 }
 
 export function TrackRow({ song, index, isActive, onPlay, onDelete }: TrackRowProps) {
-  const { isPlaying } = usePlayer();
+  const { isPlaying, addToQueue, currentSong } = usePlayer();
 
   return (
     <>
@@ -49,8 +49,22 @@ export function TrackRow({ song, index, isActive, onPlay, onDelete }: TrackRowPr
           </p>
         </div>
 
-        {/* Playing indicator or duration */}
-        <div className="flex-shrink-0">
+        {/* Add to queue + Playing indicator / duration */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {currentSong && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                addToQueue(song);
+              }}
+              className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+              title="Add to queue"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5v-1l11.5 .001V1h1.5v4H1z" />
+              </svg>
+            </button>
+          )}
           {isActive && isPlaying ? (
             <svg className="w-5 h-5 text-spotify-green" fill="currentColor" viewBox="0 0 16 16">
               <path d="M10.016 10.794a.5.5 0 00.984 0V5.206a.5.5 0 00-.984 0v5.588zm-5.032 1.803a.5.5 0 00.984 0V3.403a.5.5 0 00-.984 0v9.194z" />
@@ -130,6 +144,21 @@ export function TrackRow({ song, index, isActive, onPlay, onDelete }: TrackRowPr
 
         {/* Duration & actions */}
         <div className="flex items-center justify-end gap-2">
+          {/* Add to queue */}
+          {currentSong && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                addToQueue(song);
+              }}
+              className="w-8 h-8 hidden group-hover:flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+              title="Add to queue"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5v-1l11.5 .001V1h1.5v4H1z" />
+              </svg>
+            </button>
+          )}
           {onDelete && (
             <button
               onClick={(e) => {

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlayer } from "@/context/PlayerContext";
 import { formatDuration } from "@/lib/audioUtils";
 import { TrackRow } from "@/components/TrackRow";
+import { cacheAudioFile, isAudioCached, removeCachedAudio } from "@/lib/offlineStorage";
 
 export default function PlaylistPage() {
   const params = useParams();
@@ -20,6 +21,11 @@ export default function PlaylistPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [showAddSongs, setShowAddSongs] = useState(false);
+
+  // Offline download state
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState({ done: 0, total: 0 });
 
   const { user } = useAuth();
   const { playQueue, currentSong, isPlaying } = usePlayer();
@@ -150,6 +156,60 @@ export default function PlaylistPage() {
     }
   };
 
+  // Check if all songs are already downloaded
+  useEffect(() => {
+    async function checkDownloaded() {
+      if (songs.length === 0) {
+        setIsDownloaded(false);
+        return;
+      }
+      const results = await Promise.all(songs.map((s) => isAudioCached(s.id)));
+      setIsDownloaded(results.every(Boolean));
+    }
+    checkDownloaded();
+  }, [songs]);
+
+  // Download entire playlist for offline
+  const handleDownload = async () => {
+    if (songs.length === 0 || isDownloading) return;
+
+    setIsDownloading(true);
+    setDownloadProgress({ done: 0, total: songs.length });
+
+    let completed = 0;
+    let failed = 0;
+    for (const song of songs) {
+      try {
+        const alreadyCached = await isAudioCached(song.id);
+        if (!alreadyCached) {
+          await cacheAudioFile(song.id, song.file_url);
+        }
+      } catch {
+        failed++;
+      }
+      completed++;
+      setDownloadProgress({ done: completed, total: songs.length });
+    }
+
+    setIsDownloading(false);
+
+    // Re-check actual state
+    const results = await Promise.all(songs.map((s) => isAudioCached(s.id)));
+    setIsDownloaded(results.every(Boolean));
+
+    if (failed > 0) {
+      alert(`${failed} song${failed > 1 ? "s" : ""} failed to download. Try again.`);
+    }
+  };
+
+  // Remove all downloaded songs for this playlist
+  const handleRemoveDownload = async () => {
+    for (const song of songs) {
+      await removeCachedAudio(song.id);
+    }
+    setIsDownloaded(false);
+  };
+
   // Calculate total duration
   const totalDuration = songs.reduce((acc, song) => acc + song.duration, 0);
 
@@ -261,6 +321,36 @@ export default function PlaylistPage() {
               <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
             </svg>
           </button>
+        )}
+
+        {/* Download for offline */}
+        {songs.length > 0 && (
+          isDownloading ? (
+            <div className="flex items-center gap-2 text-spotify-green text-sm font-medium">
+              <div className="w-5 h-5 border-2 border-spotify-green border-t-transparent rounded-full animate-spin" />
+              <span>{downloadProgress.done}/{downloadProgress.total}</span>
+            </div>
+          ) : isDownloaded ? (
+            <button
+              onClick={handleRemoveDownload}
+              className="w-10 h-10 flex items-center justify-center text-spotify-green hover:text-white transition-colors"
+              title="Remove download"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 0a8 8 0 110 16A8 8 0 018 0zm3.78 5.22a.75.75 0 00-1.06 0L7 8.94 5.28 7.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.06 0l4.25-4.25a.75.75 0 000-1.06z" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleDownload}
+              className="w-10 h-10 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+              title="Download for offline"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8 1a.75.75 0 01.75.75v6.69l2.72-2.72a.75.75 0 011.06 1.06l-4 4a.75.75 0 01-1.06 0l-4-4a.75.75 0 011.06-1.06l2.72 2.72V1.75A.75.75 0 018 1zM1.75 12a.75.75 0 01.75.75v1.5h11v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 0113.25 16H2.75A1.75 1.75 0 011 14.25v-1.5a.75.75 0 01.75-.75z" />
+              </svg>
+            </button>
+          )
         )}
 
         <button

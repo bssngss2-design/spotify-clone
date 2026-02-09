@@ -138,36 +138,70 @@ export function Player() {
           </div>
           
           {/* Mobile controls - right side */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-0 flex-shrink-0">
+            {/* Shuffle */}
+            <button
+              onClick={toggleShuffle}
+              className={`w-9 h-9 flex items-center justify-center transition-colors active:scale-95 ${
+                shuffle ? "text-spotify-green" : "text-foreground-subdued"
+              }`}
+              title={shuffle ? "Disable shuffle" : "Enable shuffle"}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M13.151.922a.75.75 0 10-1.06 1.06L13.109 3H11.16a3.75 3.75 0 00-2.873 1.34l-6.173 7.356A2.25 2.25 0 01.39 12.5H0V14h.391a3.75 3.75 0 002.873-1.34l6.173-7.356a2.25 2.25 0 011.724-.804h1.947l-1.017 1.018a.75.75 0 001.06 1.06l2.306-2.306a.75.75 0 000-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 00.39 3.5z" />
+                <path d="M7.5 10.723l.98-1.167.957 1.14a2.25 2.25 0 001.724.804h1.947l-1.017-1.018a.75.75 0 111.06-1.06l2.306 2.306a.75.75 0 010 1.06l-2.306 2.306a.75.75 0 11-1.06-1.06L13.109 13H11.16a3.75 3.75 0 01-2.873-1.34l-.787-.938z" />
+              </svg>
+            </button>
+
             <button
               onClick={previous}
-              className="w-11 h-11 flex items-center justify-center text-white active:scale-95"
+              className="w-10 h-10 flex items-center justify-center text-white active:scale-95"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M3.3 1a.7.7 0 01.7.7v5.15l9.95-5.744a.7.7 0 011.05.606v12.575a.7.7 0 01-1.05.607L4 9.149V14.3a.7.7 0 01-.7.7H1.7a.7.7 0 01-.7-.7V1.7a.7.7 0 01.7-.7h1.6z" />
               </svg>
             </button>
             <button
               onClick={handlePlayClick}
-              className="w-12 h-12 bg-white rounded-full flex items-center justify-center active:scale-95"
+              className="w-11 h-11 bg-white rounded-full flex items-center justify-center active:scale-95"
             >
               {isPlaying ? (
-                <svg className="w-6 h-6 text-black" fill="currentColor" viewBox="0 0 16 16">
+                <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M2.7 1a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7H2.7zm8 0a.7.7 0 00-.7.7v12.6a.7.7 0 00.7.7h2.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-2.6z" />
                 </svg>
               ) : (
-                <svg className="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 16 16">
+                <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
                 </svg>
               )}
             </button>
             <button
               onClick={handleNextClick}
-              className="w-11 h-11 flex items-center justify-center text-white active:scale-95"
+              className="w-10 h-10 flex items-center justify-center text-white active:scale-95"
             >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M12.7 1a.7.7 0 00-.7.7v5.15L2.05 1.107A.7.7 0 001 1.712v12.575a.7.7 0 001.05.607L12 9.149V14.3a.7.7 0 00.7.7h1.6a.7.7 0 00.7-.7V1.7a.7.7 0 00-.7-.7h-1.6z" />
               </svg>
+            </button>
+
+            {/* Repeat / Loop */}
+            <button
+              onClick={cycleRepeat}
+              className={`w-9 h-9 flex items-center justify-center transition-colors active:scale-95 ${
+                repeat !== "off" ? "text-spotify-green" : "text-foreground-subdued"
+              }`}
+              title={`Repeat: ${repeat}`}
+            >
+              {repeat === "one" ? (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M0 4.75A3.75 3.75 0 013.75 1h.75v1.5h-.75A2.25 2.25 0 001.5 4.75v5A2.25 2.25 0 003.75 12H5v1.5H3.75A3.75 3.75 0 010 9.75v-5zM12.25 2.5h-.75V1h.75A3.75 3.75 0 0116 4.75v5a3.75 3.75 0 01-3.75 3.75H10.5V12h1.75a2.25 2.25 0 002.25-2.25v-5a2.25 2.25 0 00-2.25-2.25z" />
+                  <path d="M4.75 6.5a.75.75 0 01.75.75V9.5h.75a.75.75 0 010 1.5H4a.75.75 0 01-.75-.75V7.25a.75.75 0 01.75-.75zM12.25.5l2.5 2-2.5 2V.5zm-8.5 15l-2.5-2 2.5-2v4z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M0 4.75A3.75 3.75 0 013.75 1h8.5A3.75 3.75 0 0116 4.75v5a3.75 3.75 0 01-3.75 3.75H5.5l1.97 1.97a.75.75 0 11-1.06 1.06L2.97 13.1a.75.75 0 010-1.06l3.44-3.44a.75.75 0 111.06 1.06L5.5 12h6.75a2.25 2.25 0 002.25-2.25v-5A2.25 2.25 0 0012.25 2.5h-8.5a2.25 2.25 0 00-2.25 2.25v5A2.25 2.25 0 003.75 12H4v1.5h-.25A3.75 3.75 0 010 9.75v-5z" />
+                </svg>
+              )}
             </button>
           </div>
         </div>

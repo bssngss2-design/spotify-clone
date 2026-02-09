@@ -10,6 +10,7 @@ import {
   ReactNode,
 } from "react";
 import { Song } from "@/lib/supabase";
+import { getCachedAudio, cacheAudioFile, getAllCachedSongIds } from "@/lib/offlineStorage";
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -272,36 +273,118 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Sync audio element with state
+  // ──────────────────────────────────────────────────────
+  // SINGLE unified effect: handles song changes AND play/pause
+  // No more two effects fighting over the <audio> element
+  // ──────────────────────────────────────────────────────
+  const loadedSongId = useRef<string | null>(null);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (state.isPlaying && state.currentSong) {
-      audio.play().catch((e) => {
-        // Ignore AbortError - happens when play is interrupted by a new load
-        if (e.name !== "AbortError") console.error(e);
-      });
-    } else {
+    // No song selected — nothing to do
+    if (!state.currentSong) {
       audio.pause();
+      return;
     }
-  }, [state.isPlaying, state.currentSong]);
 
-  // Update audio src when song changes
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !state.currentSong) return;
+    const songId = state.currentSong.id;
+    const songChanged = songId !== loadedSongId.current;
 
-    audio.src = state.currentSong.file_url;
-    audio.load();
-    
-    if (state.isPlaying) {
-      audio.play().catch((e) => {
-        // Ignore AbortError - happens when play is interrupted by a new load
-        if (e.name !== "AbortError") console.error(e);
-      });
+    // ── SAME SONG: just toggle play/pause (synchronous, no source change) ──
+    if (!songChanged) {
+      if (state.isPlaying) {
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+      }
+      return;
     }
-  }, [state.currentSong?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── DIFFERENT SONG: stop old audio, resolve source, load, play ──
+    audio.pause();
+
+    let cancelled = false;
+
+    async function loadNewSong() {
+      if (!audio || cancelled) return;
+
+      const isOnline = typeof navigator !== "undefined" && navigator.onLine;
+      const remoteUrl = state.currentSong!.file_url;
+
+      // Step 1: Check offline cache
+      let cachedSrc: string | null = null;
+      try {
+        cachedSrc = await getCachedAudio(songId);
+      } catch {
+        // IndexedDB not available
+      }
+      if (cancelled) return;
+
+      // Step 2: Determine source
+      const audioSrc = cachedSrc || (isOnline ? remoteUrl : null);
+
+      if (audioSrc) {
+        // Step 3: Load and play
+        audio.src = audioSrc;
+        audio.load();
+        loadedSongId.current = songId;
+
+        if (state.isPlaying) {
+          audio.play().catch(() => {});
+        }
+
+        // Step 4: Background cache if we used the remote URL
+        if (!cachedSrc && isOnline && remoteUrl) {
+          cacheAudioFile(songId, remoteUrl).catch(() => {});
+        }
+      } else {
+        // Offline and not cached — find next cached song in the queue
+        let cachedIds: string[] = [];
+        try {
+          cachedIds = await getAllCachedSongIds();
+        } catch {}
+        if (cancelled) return;
+
+        const cachedSet = new Set(cachedIds);
+        const queue = state.queue;
+        const idx = state.currentIndex;
+
+        // Search forward through queue for a cached song
+        let foundIdx = -1;
+        for (let i = 1; i < queue.length; i++) {
+          const check = (idx + i) % queue.length;
+          if (cachedSet.has(queue[check].id)) {
+            foundIdx = check;
+            break;
+          }
+        }
+
+        if (foundIdx >= 0) {
+          // Reset so the effect treats it as a new song (even if same ID)
+          loadedSongId.current = null;
+          // Jump to the next cached song (this triggers this effect again)
+          setState((prev) => ({
+            ...prev,
+            currentIndex: foundIdx,
+            currentSong: prev.queue[foundIdx],
+            isPlaying: true,
+          }));
+        } else {
+          // Nothing cached at all — stop
+          loadedSongId.current = null;
+          setState((prev) => ({ ...prev, isPlaying: false }));
+        }
+      }
+    }
+
+    loadNewSong();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.currentSong?.id, state.isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update volume
   useEffect(() => {
@@ -327,14 +410,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       next();
     };
 
+    // Suppress audio element errors (e.g. offline with no cached source)
+    const handleError = () => {
+      // Don't propagate — loadAudio already handles fallback logic
+    };
+
     audio.addEventListener("timeupdate", handleTimeUpdate);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
 
     return () => {
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
     };
   }, [next]);
 

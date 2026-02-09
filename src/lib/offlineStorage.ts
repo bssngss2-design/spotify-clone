@@ -63,9 +63,8 @@ export async function cacheAudioFile(
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
-  } catch (error) {
-    console.error("Failed to cache audio file:", error);
-    throw error;
+  } catch (err) {
+    console.warn("[offline] Failed to cache song:", songId, err);
   }
 }
 
