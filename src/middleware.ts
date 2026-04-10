@@ -34,22 +34,32 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refresh session if expired — if offline, let the user through
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch {
+    // Offline or Supabase unreachable — skip auth check, let cached PWA work
+    return response;
+  }
 
-  // If user is not authenticated and trying to access protected routes
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname.startsWith("/auth");
 
   if (!user && !isAuthPage) {
+    // Check if there's a session cookie — if so, probably offline, let them through
+    const hasSession = request.cookies.getAll().some(
+      (c) => c.name.includes("auth-token") || c.name.includes("sb-")
+    );
+    if (hasSession) {
+      return response;
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If user is authenticated and trying to access auth pages
   if (user && isAuthPage && !request.nextUrl.pathname.startsWith("/auth/callback")) {
     return NextResponse.redirect(new URL("/", request.url));
   }
