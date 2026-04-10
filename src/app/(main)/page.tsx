@@ -4,16 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { createClient, Song } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { SongList } from "@/components/SongList";
-import { UploadZone } from "@/components/UploadZone";
-import { YouTubeSearch } from "@/components/YouTubeSearch";
 
 export default function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const supabase = createClient();
 
-  // Fetch songs
   const fetchSongs = useCallback(async () => {
     if (!user) return;
 
@@ -33,29 +30,6 @@ export default function HomePage() {
     fetchSongs();
   }, [fetchSongs]);
 
-  // Handle song upload complete
-  const handleUploadComplete = (newSong: Song) => {
-    setSongs((prev) => [newSong, ...prev]);
-  };
-
-  // Handle song delete
-  const handleDeleteSong = async (songId: string) => {
-    const song = songs.find((s) => s.id === songId);
-    if (!song || !user) return;
-
-    // Delete from database
-    const { error } = await supabase.from("songs").delete().eq("id", songId);
-
-    if (!error) {
-      // Delete from storage
-      const filePath = song.file_url.split("/").slice(-2).join("/");
-      await supabase.storage.from("audio").remove([filePath]);
-
-      // Update local state
-      setSongs((prev) => prev.filter((s) => s.id !== songId));
-    }
-  };
-
   return (
     <div className="p-6">
       {/* Header */}
@@ -66,19 +40,7 @@ export default function HomePage() {
             {songs.length} {songs.length === 1 ? "song" : "songs"}
           </p>
         </div>
-        <button
-          onClick={signOut}
-          className="px-4 py-2 text-sm text-foreground-subdued hover:text-white transition-colors"
-        >
-          Sign out
-        </button>
       </div>
-
-      {/* YouTube Search */}
-      <YouTubeSearch onSongAdded={handleUploadComplete} />
-
-      {/* Upload zone */}
-      <UploadZone onUploadComplete={handleUploadComplete} />
 
       {/* Songs list */}
       {loading ? (
@@ -100,11 +62,11 @@ export default function HomePage() {
             No songs yet
           </h2>
           <p className="text-foreground-subdued">
-            Drag and drop some audio files above to get started
+            Add some songs to get started
           </p>
         </div>
       ) : (
-        <SongList songs={songs} onDeleteSong={handleDeleteSong} />
+        <SongList songs={songs} />
       )}
     </div>
   );

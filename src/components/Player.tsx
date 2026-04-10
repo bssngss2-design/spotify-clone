@@ -1,10 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
 import { usePlayer } from "@/context/PlayerContext";
 import { formatDuration } from "@/lib/audioUtils";
-import { createClient, Song } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
 
 export function Player() {
   const {
@@ -16,8 +13,6 @@ export function Player() {
     isMuted,
     shuffle,
     repeat,
-    queue,
-    currentIndex,
     togglePlay,
     previous,
     next,
@@ -26,70 +21,15 @@ export function Player() {
     toggleMute,
     toggleShuffle,
     cycleRepeat,
-    playQueue,
   } = usePlayer();
 
-  const { user } = useAuth();
-  const supabase = createClient();
-
-  // Play a random song from library when nothing is playing
-  const playRandomFromLibrary = useCallback(async () => {
-    if (!user) return;
-
-    const { data: songs } = await supabase
-      .from("songs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (songs && songs.length > 0) {
-      const randomIndex = Math.floor(Math.random() * songs.length);
-      playQueue(songs as Song[], randomIndex);
-    }
-  }, [user, supabase, playQueue]);
-
-  // Handle play button when nothing is playing
-  const handlePlayClick = () => {
-    if (currentSong) {
-      togglePlay();
-    } else {
-      playRandomFromLibrary();
-    }
-  };
-
-  // Handle next button when nothing is playing
-  const handleNextClick = () => {
-    if (currentSong) {
-      next();
-    } else {
-      playRandomFromLibrary();
-    }
-  };
-
-  // Show minimal player if nothing is playing
   if (!currentSong) {
     return (
-      <footer className="h-20 bg-player-bg border-t border-border px-4 flex items-center justify-center">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={playRandomFromLibrary}
-            className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
-            title="Play random song"
-          >
-            <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
-            </svg>
-          </button>
-          <p className="text-foreground-muted text-sm">
-            Click to play a random song
-          </p>
-        </div>
-      </footer>
+      <footer className="h-20 bg-player-bg border-t border-border" />
     );
   }
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const trackNumber = currentIndex + 1;
-  const totalTracks = queue.length;
 
   return (
     <footer className="bg-player-bg border-t border-border">
@@ -162,7 +102,7 @@ export function Player() {
               </svg>
             </button>
             <button
-              onClick={handlePlayClick}
+              onClick={togglePlay}
               className="w-11 h-11 bg-white rounded-full flex items-center justify-center active:scale-95"
             >
               {isPlaying ? (
@@ -176,7 +116,7 @@ export function Player() {
               )}
             </button>
             <button
-              onClick={handleNextClick}
+              onClick={next}
               className="w-10 h-10 flex items-center justify-center text-white active:scale-95"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
@@ -265,7 +205,7 @@ export function Player() {
 
           {/* Play/Pause */}
           <button
-            onClick={handlePlayClick}
+            onClick={togglePlay}
             className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform"
             title={isPlaying ? "Pause" : "Play"}
           >
@@ -282,7 +222,7 @@ export function Player() {
 
           {/* Next */}
           <button
-            onClick={handleNextClick}
+            onClick={next}
             className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
             title="Next"
           >
@@ -338,13 +278,6 @@ export function Player() {
 
         {/* Right controls */}
         <div className="w-[30%] min-w-[180px] flex items-center justify-end gap-3">
-          {/* Track number */}
-          {totalTracks > 1 && (
-            <span className="text-xs text-foreground-subdued">
-              {trackNumber} of {totalTracks}
-            </span>
-          )}
-
           {/* Volume */}
           <div className="flex items-center gap-2">
             <button
