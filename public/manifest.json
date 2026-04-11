@@ -1,7 +1,7 @@
 {
-  "name": "Spotify Clone",
-  "short_name": "Music",
-  "description": "Personal music library - Your own Spotify",
+  "name": "Spotify",
+  "short_name": "Spotify",
+  "description": "Spotify - Web Player",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

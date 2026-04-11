@@ -60,6 +60,20 @@ CREATE INDEX IF NOT EXISTS idx_playlist_songs_playlist_id ON playlist_songs(play
 CREATE INDEX IF NOT EXISTS idx_playlist_songs_position ON playlist_songs(playlist_id, position);
 
 -- =====================================================
+-- LIKED_SONGS TABLE
+-- Tracks which songs a user has liked
+-- =====================================================
+CREATE TABLE IF NOT EXISTS liked_songs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, song_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_liked_songs_user_id ON liked_songs(user_id);
+
+-- =====================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- Users can only access their own data
 -- =====================================================
@@ -68,6 +82,7 @@ CREATE INDEX IF NOT EXISTS idx_playlist_songs_position ON playlist_songs(playlis
 ALTER TABLE songs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE playlists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE playlist_songs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE liked_songs ENABLE ROW LEVEL SECURITY;
 
 -- Songs policies
 CREATE POLICY "Users can view their own songs"
@@ -143,3 +158,16 @@ CREATE POLICY "Users can remove songs from their playlists"
       AND playlists.user_id = auth.uid()
     )
   );
+
+-- Liked songs policies
+CREATE POLICY "Users can view their liked songs"
+  ON liked_songs FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can like songs"
+  ON liked_songs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can unlike songs"
+  ON liked_songs FOR DELETE
+  USING (auth.uid() = user_id);

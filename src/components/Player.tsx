@@ -2,6 +2,7 @@
 
 import { usePlayer } from "@/context/PlayerContext";
 import { formatDuration } from "@/lib/audioUtils";
+import { useLikedSongs } from "@/hooks/useLikedSongs";
 
 export function Player() {
   const {
@@ -22,6 +23,8 @@ export function Player() {
     toggleShuffle,
     cycleRepeat,
   } = usePlayer();
+
+  const { isLiked, toggleLike } = useLikedSongs();
 
   if (!currentSong) {
     return (
@@ -172,6 +175,23 @@ export function Player() {
               {currentSong.artist || "Unknown artist"}
             </p>
           </div>
+          <button
+            onClick={() => toggleLike(currentSong.id)}
+            className={`w-8 h-8 flex items-center justify-center flex-shrink-0 transition-colors ${
+              isLiked(currentSong.id) ? "text-spotify-green" : "text-foreground-subdued hover:text-white"
+            }`}
+            title={isLiked(currentSong.id) ? "Remove from Liked Songs" : "Save to Liked Songs"}
+          >
+            {isLiked(currentSong.id) ? (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M15.724 4.22A4.313 4.313 0 0012.192.814a4.269 4.269 0 00-3.622 1.13.837.837 0 01-1.14 0 4.272 4.272 0 00-6.38 5.57l5.593 7.434a1.12 1.12 0 001.733-.074l.033-.044 5.315-7.315z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2zm2.876.297A3.073 3.073 0 002.5 5.59a3.073 3.073 0 00.002 3.395L8 14.085l5.498-5.1A3.073 3.073 0 0013.5 5.59a3.073 3.073 0 00-5.066-2.294L8 3.723l-.434-.427A3.073 3.073 0 004.566 2.297z" />
+              </svg>
+            )}
+          </button>
         </div>
 
         {/* Center - Player controls */}
@@ -277,9 +297,50 @@ export function Player() {
       </div>
 
         {/* Right controls */}
-        <div className="w-[30%] min-w-[180px] flex items-center justify-end gap-3">
+        <div className="w-[30%] min-w-[180px] flex items-center justify-end gap-1">
+          {/* Now Playing View */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Now Playing View"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.196 8L6 5v6l5.196-3z" />
+              <path d="M15.002 1.75A1.75 1.75 0 0013.252 0h-10.5a1.75 1.75 0 00-1.75 1.75v12.5c0 .966.784 1.75 1.75 1.75h10.5a1.75 1.75 0 001.75-1.75V1.75zm-1.75-.25a.25.25 0 01.25.25v12.5a.25.25 0 01-.25.25h-10.5a.25.25 0 01-.25-.25V1.75a.25.25 0 01.25-.25h10.5z" />
+            </svg>
+          </button>
+
+          {/* Lyrics */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Lyrics"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M13.426 2.574a2.831 2.831 0 00-4.797 1.55l3.247 3.247a2.831 2.831 0 001.55-4.797zM10.5 8.118l-2.619-2.62A63.088 63.088 0 011.348 9.65.5.5 0 001 10.104v3.396a.5.5 0 00.5.5h3.396a.5.5 0 00.454-.348 63.088 63.088 0 014.15-5.534z" />
+            </svg>
+          </button>
+
+          {/* Queue */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Queue"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5v-1l11.5.001V1h1.5v4H1z" />
+            </svg>
+          </button>
+
+          {/* Connect to device */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Connect to a device"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M6 2.745a.75.75 0 01.75-.745h2.5a.75.75 0 01.75.745l.162 4.323a.75.75 0 01-.75.782H6.588a.75.75 0 01-.75-.782L6 2.745zm.452 6.505a.75.75 0 01.75-.75h1.596a.75.75 0 01.75.75v.689a.75.75 0 01-.75.75H7.202a.75.75 0 01-.75-.75v-.689zM3.5 12.25a.75.75 0 00-.75.75v1.25a.75.75 0 00.75.75h9a.75.75 0 00.75-.75V13a.75.75 0 00-.75-.75h-9z" />
+            </svg>
+          </button>
+
           {/* Volume */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={toggleMute}
               className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
@@ -313,6 +374,27 @@ export function Player() {
               }}
             />
           </div>
+
+          {/* Mini player */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Mini Player"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M16 2.45c0-.8-.65-1.45-1.45-1.45H1.45C.65 1 0 1.65 0 2.45v11.1C0 14.35.65 15 1.45 15h5.557v-1.5H1.5v-11h13V7h1.5V2.45z" />
+              <path d="M16 9.25a1.25 1.25 0 00-1.25-1.25h-4.5A1.25 1.25 0 009 9.25v4.5c0 .69.56 1.25 1.25 1.25h4.5c.69 0 1.25-.56 1.25-1.25v-4.5z" />
+            </svg>
+          </button>
+
+          {/* Fullscreen */}
+          <button
+            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            title="Full screen"
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M6.53 9.47a.75.75 0 010 1.06l-2.72 2.72h1.018a.75.75 0 010 1.5H1.25v-3.579a.75.75 0 011.5 0v1.018l2.72-2.72a.75.75 0 011.06 0zm2.94-2.94a.75.75 0 010-1.06l2.72-2.72h-1.018a.75.75 0 110-1.5h3.578v3.579a.75.75 0 01-1.5 0V3.81l-2.72 2.72a.75.75 0 01-1.06 0z" />
+            </svg>
+          </button>
         </div>
       </div>
     </footer>

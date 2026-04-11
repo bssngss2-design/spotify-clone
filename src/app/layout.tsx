@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Music",
-  description: "Personal music library - Your own Spotify",
+  title: "Spotify",
+  description: "Spotify - Web Player",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Music",
+    title: "Spotify",
   },
 };
 
