@@ -5,9 +5,14 @@ import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { Player } from "./Player";
 import { PlayerProvider } from "@/context/PlayerContext";
+import { NowPlayingPanel } from "./NowPlayingPanel";
+import { QueuePanel } from "./QueuePanel";
+import { LyricsPanel } from "./LyricsPanel";
 import { createClient, Playlist } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+
+type RightPanel = "none" | "now-playing" | "queue" | "lyrics";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -17,68 +22,47 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [rightPanel, setRightPanel] = useState<RightPanel>("none");
   const { user } = useAuth();
   const { likedCount } = useLikedSongs();
   const supabase = createClient();
 
   const fetchPlaylists = useCallback(async () => {
     if (!user) return;
-
     const { data } = await supabase
       .from("playlists")
       .select("*")
       .order("created_at", { ascending: false });
-
-    if (data) {
-      setPlaylists(data);
-    }
+    if (data) setPlaylists(data);
   }, [user, supabase]);
 
-  useEffect(() => {
-    fetchPlaylists();
-  }, [fetchPlaylists]);
+  useEffect(() => { fetchPlaylists(); }, [fetchPlaylists]);
 
   const handleCreatePlaylist = async () => {
-    if (!user) {
-      console.error("No user logged in");
-      return;
-    }
-
+    if (!user) return;
     const playlistNumber = playlists.length + 1;
     const { data, error } = await supabase
       .from("playlists")
-      .insert({
-        user_id: user.id,
-        name: `My Playlist #${playlistNumber}`,
-      })
+      .insert({ user_id: user.id, name: `My Playlist #${playlistNumber}` })
       .select()
       .single();
+    if (error) { alert("Failed to create playlist: " + error.message); return; }
+    if (data) setPlaylists((prev) => [data, ...prev]);
+  };
 
-    if (error) {
-      console.error("Failed to create playlist:", error);
-      alert("Failed to create playlist: " + error.message);
-      return;
-    }
-
-    if (data) {
-      setPlaylists((prev) => [data, ...prev]);
-    }
+  const togglePanel = (panel: RightPanel) => {
+    setRightPanel((prev) => (prev === panel ? "none" : panel));
   };
 
   return (
     <PlayerProvider>
       <div className="h-screen flex flex-col bg-black">
-        {/* Top bar - hidden on mobile */}
         <div className="hidden md:block">
           <TopBar />
         </div>
 
-        {/* Mobile header */}
         <div className="md:hidden flex items-center justify-between p-3 bg-black">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="w-10 h-10 flex items-center justify-center text-white"
-          >
+          <button onClick={() => setSidebarOpen(true)} className="w-10 h-10 flex items-center justify-center text-white">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -92,51 +76,47 @@ export function MainLayout({ children }: MainLayoutProps) {
           <div className="w-10" />
         </div>
 
-        {/* Main content area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Mobile sidebar overlay */}
           {sidebarOpen && (
-            <div
-              className="md:hidden fixed inset-0 bg-black/60 z-40"
-              onClick={() => setSidebarOpen(false)}
-            />
+            <div className="md:hidden fixed inset-0 bg-black/60 z-40" onClick={() => setSidebarOpen(false)} />
           )}
 
-          {/* Sidebar - mobile overlay */}
-          <div
-            className={`fixed md:hidden inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
-              sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            }`}
-          >
-            <Sidebar
-              playlists={playlists}
-              likedCount={likedCount}
-              collapsed={false}
-              onToggleCollapse={() => {}}
-              onCreatePlaylist={handleCreatePlaylist}
-              onClose={() => setSidebarOpen(false)}
-            />
+          <div className={`fixed md:hidden inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+            <Sidebar playlists={playlists} likedCount={likedCount} collapsed={false} onToggleCollapse={() => {}} onCreatePlaylist={handleCreatePlaylist} onClose={() => setSidebarOpen(false)} />
           </div>
 
-          {/* Sidebar - desktop */}
           <div className="hidden md:block flex-shrink-0">
-            <Sidebar
-              playlists={playlists}
-              likedCount={likedCount}
-              collapsed={sidebarCollapsed}
-              onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-              onCreatePlaylist={handleCreatePlaylist}
-            />
+            <Sidebar playlists={playlists} likedCount={likedCount} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onCreatePlaylist={handleCreatePlaylist} />
           </div>
 
-          {/* Main content */}
           <main className="flex-1 overflow-y-auto bg-background-elevated md:rounded-lg md:mr-2 md:mb-2">
             {children}
           </main>
+
+          {/* Right panels */}
+          {rightPanel === "now-playing" && (
+            <div className="hidden md:block flex-shrink-0">
+              <NowPlayingPanel onClose={() => setRightPanel("none")} />
+            </div>
+          )}
+          {rightPanel === "queue" && (
+            <div className="hidden md:block flex-shrink-0">
+              <QueuePanel onClose={() => setRightPanel("none")} />
+            </div>
+          )}
+          {rightPanel === "lyrics" && (
+            <div className="hidden md:block flex-shrink-0">
+              <LyricsPanel onClose={() => setRightPanel("none")} />
+            </div>
+          )}
         </div>
 
-        {/* Player */}
-        <Player />
+        <Player
+          activePanel={rightPanel}
+          onToggleNowPlaying={() => togglePanel("now-playing")}
+          onToggleQueue={() => togglePanel("queue")}
+          onToggleLyrics={() => togglePanel("lyrics")}
+        />
       </div>
     </PlayerProvider>
   );

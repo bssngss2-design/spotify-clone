@@ -31,7 +31,7 @@ export function Sidebar({ playlists, likedCount, collapsed, onToggleCollapse, on
               title="Expand Your Library"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 22a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zM15.5 2.134A1 1 0 0117 3v18a1 1 0 01-1.5.866l-10-6a1 1 0 010-1.732l10-6A1 1 0 0117 9v.134z" />
+                <path d="M3 22a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zm4 0a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zm7-1l9-5V7l-9 5v9zM11 3v13l9-5V3l-9 5z" />
               </svg>
             </button>
             <button
@@ -97,7 +97,7 @@ export function Sidebar({ playlists, likedCount, collapsed, onToggleCollapse, on
         <div className="px-4 pt-4 pb-2 flex items-center justify-between">
           <button onClick={onToggleCollapse} className="flex items-center gap-3 text-foreground-subdued hover:text-white transition-colors">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 22a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zM15.5 2.134A1 1 0 0117 3v18a1 1 0 01-1.5.866l-10-6a1 1 0 010-1.732l10-6A1 1 0 0117 9v.134z" />
+              <path d="M3 22a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zm4 0a1 1 0 01-1-1V3a1 1 0 012 0v18a1 1 0 01-1 1zm7-1l9-5V7l-9 5v9zM11 3v13l9-5V3l-9 5z" />
             </svg>
             <span className="font-bold text-base">Your Library</span>
           </button>

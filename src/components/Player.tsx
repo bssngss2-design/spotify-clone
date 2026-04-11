@@ -1,10 +1,21 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { usePlayer } from "@/context/PlayerContext";
 import { formatDuration } from "@/lib/audioUtils";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { ConnectPopup } from "./ConnectPopup";
 
-export function Player() {
+interface PlayerProps {
+  activePanel?: string;
+  onToggleNowPlaying?: () => void;
+  onToggleQueue?: () => void;
+  onToggleLyrics?: () => void;
+}
+
+export function Player({ activePanel, onToggleNowPlaying, onToggleQueue, onToggleLyrics }: PlayerProps) {
+  const [connectOpen, setConnectOpen] = useState(false);
+  const connectRef = useRef<HTMLDivElement>(null);
   const {
     currentSong,
     isPlaying,
@@ -25,6 +36,14 @@ export function Player() {
   } = usePlayer();
 
   const { isLiked, toggleLike } = useLikedSongs();
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (connectRef.current && !connectRef.current.contains(e.target as Node)) setConnectOpen(false);
+    }
+    if (connectOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [connectOpen]);
 
   if (!currentSong) {
     return (
@@ -298,46 +317,52 @@ export function Player() {
 
         {/* Right controls */}
         <div className="w-[30%] min-w-[180px] flex items-center justify-end gap-1">
-          {/* Now Playing View */}
+          {/* Now Playing View -- screen with play triangle */}
           <button
-            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            onClick={onToggleNowPlaying}
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${activePanel === "now-playing" ? "text-spotify-green" : "text-foreground-subdued hover:text-white"}`}
             title="Now Playing View"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M11.196 8L6 5v6l5.196-3z" />
-              <path d="M15.002 1.75A1.75 1.75 0 0013.252 0h-10.5a1.75 1.75 0 00-1.75 1.75v12.5c0 .966.784 1.75 1.75 1.75h10.5a1.75 1.75 0 001.75-1.75V1.75zm-1.75-.25a.25.25 0 01.25.25v12.5a.25.25 0 01-.25.25h-10.5a.25.25 0 01-.25-.25V1.75a.25.25 0 01.25-.25h10.5z" />
+              <path d="M1 3v9a1 1 0 001 1h4.5v1.707a.5.5 0 00.854.353L8.707 14H14a1 1 0 001-1V3a1 1 0 00-1-1H2a1 1 0 00-1 1zm1.5.5h11v8h-4.793l-.854.854V11.5H2.5v-8zM6.5 6v4l3.5-2-3.5-2z" />
             </svg>
           </button>
 
-          {/* Lyrics */}
+          {/* Lyrics -- microphone icon */}
           <button
-            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            onClick={onToggleLyrics}
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${activePanel === "lyrics" ? "text-spotify-green" : "text-foreground-subdued hover:text-white"}`}
             title="Lyrics"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M13.426 2.574a2.831 2.831 0 00-4.797 1.55l3.247 3.247a2.831 2.831 0 001.55-4.797zM10.5 8.118l-2.619-2.62A63.088 63.088 0 011.348 9.65.5.5 0 001 10.104v3.396a.5.5 0 00.5.5h3.396a.5.5 0 00.454-.348 63.088 63.088 0 014.15-5.534z" />
+              <path d="M8 0a4 4 0 014 4v4a4 4 0 01-8 0V4a4 4 0 014-4zm-2.5 4v4a2.5 2.5 0 005 0V4a2.5 2.5 0 00-5 0zM8 11.5A5.5 5.5 0 012.5 6H1a7 7 0 006.25 6.96V15h1.5v-2.04A7 7 0 0015 6h-1.5A5.5 5.5 0 018 11.5z" />
             </svg>
           </button>
 
-          {/* Queue */}
+          {/* Queue -- stacked list with top item */}
           <button
-            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
+            onClick={onToggleQueue}
+            className={`w-8 h-8 flex items-center justify-center transition-colors ${activePanel === "queue" ? "text-spotify-green" : "text-foreground-subdued hover:text-white"}`}
             title="Queue"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5v-1l11.5.001V1h1.5v4H1z" />
+              <path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5V4h11.5V1.5h1.5V7H1V5.5z" />
             </svg>
           </button>
 
-          {/* Connect to device */}
-          <button
-            className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
-            title="Connect to a device"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M6 2.745a.75.75 0 01.75-.745h2.5a.75.75 0 01.75.745l.162 4.323a.75.75 0 01-.75.782H6.588a.75.75 0 01-.75-.782L6 2.745zm.452 6.505a.75.75 0 01.75-.75h1.596a.75.75 0 01.75.75v.689a.75.75 0 01-.75.75H7.202a.75.75 0 01-.75-.75v-.689zM3.5 12.25a.75.75 0 00-.75.75v1.25a.75.75 0 00.75.75h9a.75.75 0 00.75-.75V13a.75.75 0 00-.75-.75h-9z" />
-            </svg>
-          </button>
+          {/* Connect to device -- computer monitor icon */}
+          <div ref={connectRef} className="relative">
+            <button
+              onClick={() => setConnectOpen(!connectOpen)}
+              className={`w-8 h-8 flex items-center justify-center transition-colors ${connectOpen ? "text-spotify-green" : "text-foreground-subdued hover:text-white"}`}
+              title="Connect to a device"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M0 3a2 2 0 012-2h12a2 2 0 012 2v7a2 2 0 01-2 2H9.5v2H12a.5.5 0 010 1H4a.5.5 0 010-1h2.5v-2H2a2 2 0 01-2-2V3zm1.5 0v7a.5.5 0 00.5.5h12a.5.5 0 00.5-.5V3a.5.5 0 00-.5-.5H2a.5.5 0 00-.5.5z" />
+              </svg>
+            </button>
+            {connectOpen && <ConnectPopup onClose={() => setConnectOpen(false)} />}
+          </div>
 
           {/* Volume */}
           <div className="flex items-center gap-1">
@@ -375,24 +400,24 @@ export function Player() {
             />
           </div>
 
-          {/* Mini player */}
+          {/* Mini player -- picture-in-picture style */}
           <button
             className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
             title="Mini Player"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M16 2.45c0-.8-.65-1.45-1.45-1.45H1.45C.65 1 0 1.65 0 2.45v11.1C0 14.35.65 15 1.45 15h5.557v-1.5H1.5v-11h13V7h1.5V2.45z" />
-              <path d="M16 9.25a1.25 1.25 0 00-1.25-1.25h-4.5A1.25 1.25 0 009 9.25v4.5c0 .69.56 1.25 1.25 1.25h4.5c.69 0 1.25-.56 1.25-1.25v-4.5z" />
+              <path d="M1 2.75A.75.75 0 011.75 2h12.5a.75.75 0 01.75.75v5.5h-1.5V3.5h-11v9h4V14H1.75a.75.75 0 01-.75-.75V2.75z" />
+              <path d="M9 9.75A.75.75 0 019.75 9h4.5a.75.75 0 01.75.75v3.5a.75.75 0 01-.75.75h-4.5a.75.75 0 01-.75-.75v-3.5z" />
             </svg>
           </button>
 
-          {/* Fullscreen */}
+          {/* Fullscreen -- expand arrows */}
           <button
             className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
             title="Full screen"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M6.53 9.47a.75.75 0 010 1.06l-2.72 2.72h1.018a.75.75 0 010 1.5H1.25v-3.579a.75.75 0 011.5 0v1.018l2.72-2.72a.75.75 0 011.06 0zm2.94-2.94a.75.75 0 010-1.06l2.72-2.72h-1.018a.75.75 0 110-1.5h3.578v3.579a.75.75 0 01-1.5 0V3.81l-2.72 2.72a.75.75 0 01-1.06 0z" />
+              <path d="M6.53 9.47a.75.75 0 010 1.06l-2.72 2.72h1.018a.75.75 0 010 1.5H1.25v-3.578a.75.75 0 011.5 0v1.018l2.72-2.72a.75.75 0 011.06 0zm2.94-2.94a.75.75 0 010-1.06l2.72-2.72h-1.018a.75.75 0 110-1.5h3.578v3.578a.75.75 0 01-1.5 0V3.81l-2.72 2.72a.75.75 0 01-1.06 0z" />
             </svg>
           </button>
         </div>

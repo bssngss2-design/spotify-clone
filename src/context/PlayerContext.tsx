@@ -47,6 +47,9 @@ interface PlayerContextType extends PlayerState {
   toggleShuffle: () => void;
   cycleRepeat: () => void;
   
+  // Queue helpers
+  getUpcomingSongs: () => Song[];
+  
   // Audio ref for external use
   audioRef: React.RefObject<HTMLAudioElement | null>;
 }
@@ -273,6 +276,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const getUpcomingSongs = useCallback((): Song[] => {
+    if (state.queue.length === 0 || state.currentIndex < 0) return [];
+
+    if (state.shuffle && shuffledIndices.length > 0) {
+      const currentShufflePos = shuffledIndices.indexOf(state.currentIndex);
+      return shuffledIndices
+        .slice(currentShufflePos + 1)
+        .map((idx) => state.queue[idx])
+        .filter(Boolean);
+    }
+
+    return state.queue.slice(state.currentIndex + 1);
+  }, [state.queue, state.currentIndex, state.shuffle, shuffledIndices]);
+
   // ──────────────────────────────────────────────────────
   // SINGLE unified effect: handles song changes AND play/pause
   // No more two effects fighting over the <audio> element
@@ -460,6 +477,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         previous,
         toggleShuffle,
         cycleRepeat,
+        getUpcomingSongs,
         audioRef,
       }}
     >
