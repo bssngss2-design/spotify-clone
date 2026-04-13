@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,7 @@ export function TopBar() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const { user, signOut } = useAuth();
@@ -24,48 +25,59 @@ export function TopBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = (value: string) => {
-    setSearchQuery(value);
+  const navigateSearch = useCallback((value: string) => {
     if (value.trim()) {
       router.push(`/search?q=${encodeURIComponent(value.trim())}`);
     } else if (pathname === "/search") {
       router.push("/");
     }
+  }, [router, pathname]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => navigateSearch(value), 400);
+  };
+
+  const handleSearchSubmit = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      navigateSearch(searchQuery);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (pathname === "/search") router.push("/");
   };
 
   const userInitial = user?.email?.charAt(0).toUpperCase() || "U";
 
   return (
     <div className="h-16 bg-black flex items-center px-4 gap-2 flex-shrink-0">
-      {/* Spotify logo */}
       <Link href="/" className="flex-shrink-0 mr-4">
         <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
           <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
         </svg>
       </Link>
 
-      {/* Home button */}
       <Link
         href="/"
-        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-          pathname === "/"
-            ? "bg-white text-black"
-            : "bg-background-tinted text-foreground-subdued hover:text-white"
+        className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+          pathname === "/" ? "bg-white text-black" : "bg-background-tinted text-foreground-subdued hover:text-white"
         }`}
         title="Home"
       >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12.5 3.247a1 1 0 00-1 0L4 7.577V20h4.5v-6a1 1 0 011-1h5a1 1 0 011 1v6H20V7.577l-7.5-4.33zm-2-1.732a3 3 0 013 0l7.5 4.33a2 2 0 011 1.732V21a1 1 0 01-1 1h-6.5a1 1 0 01-1-1v-6h-3v6a1 1 0 01-1 1H3a1 1 0 01-1-1V7.577a2 2 0 011-1.732l7.5-4.33z" />
         </svg>
       </Link>
 
-      {/* Search bar */}
-      <div className={`flex-1 max-w-[480px] ml-2 relative flex items-center rounded-full transition-colors ${
-        searchFocused
-          ? "bg-background-tinted ring-2 ring-white"
-          : "bg-background-tinted hover:bg-background-highlight"
+      <div className={`flex-1 max-w-[480px] ml-2 relative flex items-center rounded-full transition-all h-12 ${
+        searchFocused ? "bg-[#2a2a2a] ring-2 ring-white" : "bg-[#1f1f1f] hover:bg-[#2a2a2a]"
       }`}>
-        <div className="pl-3 flex items-center pointer-events-none">
+        <div className="pl-4 flex items-center pointer-events-none">
           <svg className="w-5 h-5 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
             <path d="M10.533 1.279c-5.18 0-9.407 4.14-9.407 9.279s4.226 9.279 9.407 9.279c2.234 0 4.29-.77 5.907-2.058l4.353 4.353a1 1 0 101.414-1.414l-4.344-4.344a9.157 9.157 0 002.077-5.816c0-5.14-4.226-9.28-9.407-9.28zm-7.407 9.28c0-4.006 3.302-7.28 7.407-7.28s7.407 3.274 7.407 7.28-3.302 7.279-7.407 7.279-7.407-3.273-7.407-7.28z" />
           </svg>
@@ -73,81 +85,63 @@ export function TopBar() {
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onKeyDown={handleSearchSubmit}
           onFocus={() => setSearchFocused(true)}
           onBlur={() => setSearchFocused(false)}
           placeholder="What do you want to play?"
           className="flex-1 bg-transparent text-sm text-white placeholder-foreground-subdued px-3 py-3 outline-none"
         />
         {searchQuery && (
-          <button
-            onClick={() => handleSearch("")}
-            className="pr-3 text-foreground-subdued hover:text-white"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z" />
+          <button onClick={clearSearch} className="pr-3 text-foreground-subdued hover:text-white">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M5.636 5.636a1 1 0 011.414 0L12 10.586l4.95-4.95a1 1 0 111.414 1.414L13.414 12l4.95 4.95a1 1 0 01-1.414 1.414L12 13.414l-4.95 4.95a1 1 0 01-1.414-1.414L10.586 12 5.636 7.05a1 1 0 010-1.414z" />
             </svg>
           </button>
         )}
         {!searchQuery && (
-          <div className="pr-3 border-l border-foreground-muted/30 pl-3">
-            <svg className="w-5 h-5 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M4 2a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V2zm0 8a1 1 0 011-1h14a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm1 7a1 1 0 00-1 1v4a1 1 0 001 1h14a1 1 0 001-1v-4a1 1 0 00-1-1H5z" />
+          <div className="pr-3 border-l border-[#535353] pl-3 flex items-center">
+            <svg className="w-5 h-5 text-foreground-subdued hover:text-white cursor-pointer transition-colors" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M15 15.5c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM1 4.75A3.75 3.75 0 014.75 1h14.5A3.75 3.75 0 0123 4.75v14.5A3.75 3.75 0 0119.25 23H4.75A3.75 3.75 0 011 19.25V4.75zm3.75-2.25A2.25 2.25 0 002.5 4.75v14.5a2.25 2.25 0 002.25 2.25h14.5a2.25 2.25 0 002.25-2.25V4.75a2.25 2.25 0 00-2.25-2.25H4.75z" />
             </svg>
           </div>
         )}
       </div>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right side icons */}
-      <div className="flex items-center gap-2">
-        {/* Notifications bell */}
-        <button
-          className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
-          title="Notifications"
-        >
+      <div className="flex items-center gap-1">
+        <button className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white hover:scale-105 transition-all" title="What's New">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <path d="M8 1.5a4.492 4.492 0 00-4.482 4.199 23.656 23.656 0 01-.964 4.588l-.354 1.103H13.8l-.354-1.103a23.657 23.657 0 01-.964-4.588A4.492 4.492 0 008 1.5zM0 11.388l.65-2.025a21.655 21.655 0 00.882-4.203A6.492 6.492 0 018 0a6.492 6.492 0 016.468 5.16 21.656 21.656 0 00.882 4.203l.65 2.025H0zm5 2.112a3 3 0 106 0H5z" />
           </svg>
         </button>
 
-        {/* Friends */}
-        <button
-          className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
-          title="Friend Activity"
-        >
+        <button className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white hover:scale-105 transition-all" title="Friend Activity">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <path d="M4.5 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7zM3 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm8.5-3.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM10 4.5a1.5 1.5 0 113.001.001A1.5 1.5 0 0110 4.5zM1 14a3.5 3.5 0 013.5-3.5h.382a4.97 4.97 0 00-.382 1.921V14H1zm5.5 0v-1.579A3.421 3.421 0 019.921 9h1.658A3.421 3.421 0 0115 12.421V14H6.5z" />
           </svg>
         </button>
 
-        {/* Profile avatar */}
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setProfileOpen(!profileOpen)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-              profileOpen
-                ? "bg-foreground-muted text-white"
-                : "bg-background-tinted text-white hover:bg-foreground-muted"
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+              profileOpen ? "bg-[#1a1a1a] text-white ring-2 ring-white" : "bg-[#535353] text-white hover:scale-105"
             }`}
-            title="Profile"
+            title={user?.email || "Profile"}
           >
             {userInitial}
           </button>
 
           {profileOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[#282828] rounded-md shadow-xl py-1 z-50">
-              <div className="px-3 py-2 border-b border-border">
+            <div className="absolute right-0 top-full mt-2 w-52 bg-[#282828] rounded-md shadow-2xl py-1 z-50">
+              <div className="px-3 py-2.5 border-b border-[#3e3e3e]">
                 <p className="text-sm text-white font-medium truncate">{user?.email}</p>
               </div>
               <button
-                onClick={() => {
-                  setProfileOpen(false);
-                  signOut();
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-foreground-subdued hover:text-white hover:bg-background-tinted transition-colors"
+                onClick={() => { setProfileOpen(false); signOut(); }}
+                className="w-full text-left px-3 py-2.5 text-sm text-foreground-subdued hover:text-white hover:bg-[#3e3e3e] transition-colors"
               >
                 Log out
               </button>

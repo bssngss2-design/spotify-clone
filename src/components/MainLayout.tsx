@@ -27,13 +27,29 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { likedCount } = useLikedSongs();
   const supabase = createClient();
 
+  const [playlistCovers, setPlaylistCovers] = useState<Record<string, string | null>>({});
+
   const fetchPlaylists = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("playlists")
       .select("*")
       .order("created_at", { ascending: false });
-    if (data) setPlaylists(data);
+    if (data) {
+      setPlaylists(data);
+      const covers: Record<string, string | null> = {};
+      for (const pl of data) {
+        const { data: ps } = await supabase
+          .from("playlist_songs")
+          .select("song:songs(cover_url)")
+          .eq("playlist_id", pl.id)
+          .order("position")
+          .limit(1);
+        const firstSong = ps?.[0] as { song: { cover_url: string | null } } | undefined;
+        covers[pl.id] = firstSong?.song?.cover_url || null;
+      }
+      setPlaylistCovers(covers);
+    }
   }, [user, supabase]);
 
   useEffect(() => { fetchPlaylists(); }, [fetchPlaylists]);
@@ -82,11 +98,11 @@ export function MainLayout({ children }: MainLayoutProps) {
           )}
 
           <div className={`fixed md:hidden inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-            <Sidebar playlists={playlists} likedCount={likedCount} collapsed={false} onToggleCollapse={() => {}} onCreatePlaylist={handleCreatePlaylist} onClose={() => setSidebarOpen(false)} />
+            <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={false} onToggleCollapse={() => {}} onCreatePlaylist={handleCreatePlaylist} onClose={() => setSidebarOpen(false)} />
           </div>
 
           <div className="hidden md:block flex-shrink-0">
-            <Sidebar playlists={playlists} likedCount={likedCount} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onCreatePlaylist={handleCreatePlaylist} />
+            <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onCreatePlaylist={handleCreatePlaylist} />
           </div>
 
           <main className="flex-1 overflow-y-auto bg-background-elevated md:rounded-lg md:mr-2 md:mb-2">

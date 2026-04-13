@@ -21,11 +21,11 @@ function SearchResults() {
   const search = useCallback(async () => {
     if (!user || !query.trim()) { setResults([]); return; }
     setLoading(true);
-    const q = `%${query.trim()}%`;
+    const term = query.trim();
     const { data } = await supabase
       .from("songs")
       .select("*")
-      .or(`title.ilike.${q},artist.ilike.${q},album.ilike.${q}`)
+      .or(`title.ilike.%${term}%,artist.ilike.%${term}%,album.ilike.%${term}%`)
       .order("title")
       .limit(50);
     setResults(data || []);
