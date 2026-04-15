@@ -12,6 +12,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const { likedCount } = useLikedSongs();
   const supabase = createClient();
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const fetchPlaylists = useCallback(async () => {
     if (!user) return;
@@ -45,9 +46,9 @@ export default function HomePage() {
     <div className="p-6">
       {/* Filter chips */}
       <div className="flex gap-2 mb-6">
-        <span className="px-3 py-1.5 bg-white text-black text-sm font-semibold rounded-full cursor-pointer">All</span>
-        <span className="px-3 py-1.5 bg-background-tinted text-white text-sm font-semibold rounded-full hover:bg-background-highlight cursor-pointer transition-colors">Music</span>
-        <span className="px-3 py-1.5 bg-background-tinted text-white text-sm font-semibold rounded-full hover:bg-background-highlight cursor-pointer transition-colors">Podcasts</span>
+        <button onClick={() => setActiveFilter("all")} className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === "all" ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}>All</button>
+        <button onClick={() => setActiveFilter("music")} className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === "music" ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}>Music</button>
+        <button onClick={() => setActiveFilter("podcasts")} className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === "podcasts" ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}>Podcasts</button>
       </div>
 
       {/* Quick-access grid (like Spotify's top bento) */}

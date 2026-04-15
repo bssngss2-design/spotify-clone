@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Song, Playlist, createClient } from "@/lib/supabase";
 import { formatDuration } from "@/lib/audioUtils";
 import { usePlayer } from "@/context/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
 
 interface TrackRowProps {
   song: Song;
@@ -19,6 +21,8 @@ interface TrackRowProps {
 export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay, onDelete }: TrackRowProps) {
   const { isPlaying, addToQueue, currentSong } = usePlayer();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [playlistSubOpen, setPlaylistSubOpen] = useState(false);
@@ -231,19 +235,21 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M8 5a3 3 0 100 6 3 3 0 000-6z" /></svg>}
                   label="Go to song radio"
+                  onClick={(e) => { e.stopPropagation(); toast("Song radio is not available yet"); setMenuOpen(false); }}
                 />
 
                 {/* Go to artist */}
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M11.757 2.987A4 4 0 118.243 9.01a4 4 0 013.514-6.022zM8 6a2 2 0 104 0 2 2 0 00-4 0zm-3.5 6.5a5.5 5.5 0 0111 0V14h-11v-1.5z" /></svg>}
                   label="Go to artist"
-                  sub
+                  onClick={(e) => { e.stopPropagation(); if (song.artist) router.push(`/artist/${encodeURIComponent(song.artist)}`); setMenuOpen(false); }}
                 />
 
                 {/* Go to album */}
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M8 6.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" /></svg>}
                   label="Go to album"
+                  onClick={(e) => { e.stopPropagation(); if (song.album) router.push(`/album/${encodeURIComponent(song.album)}`); setMenuOpen(false); }}
                 />
 
                 <div className="border-t border-[#3e3e3e] my-1" />
@@ -252,13 +258,14 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 2.5A2.5 2.5 0 013 0h10a2.5 2.5 0 012.5 2.5v11A2.5 2.5 0 0113 16H3a2.5 2.5 0 01-2.5-2.5v-11zm2.5-1a1 1 0 00-1 1v11a1 1 0 001 1h10a1 1 0 001-1v-11a1 1 0 00-1-1H3zm1.5 3a.5.5 0 01.5-.5h6a.5.5 0 010 1H5a.5.5 0 01-.5-.5zm0 3a.5.5 0 01.5-.5h6a.5.5 0 010 1H5a.5.5 0 01-.5-.5zm0 3a.5.5 0 01.5-.5h4a.5.5 0 010 1H5a.5.5 0 01-.5-.5z" /></svg>}
                   label="View credits"
+                  onClick={(e) => { e.stopPropagation(); toast(`Credits: ${song.artist || "Unknown artist"} (Main Artist)`); setMenuOpen(false); }}
                 />
 
                 {/* Share */}
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5.75A.75.75 0 011.75 5H7v1.5H2.5v8h11V7H9V5.5h4.25a.75.75 0 01.75.75v9.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-9.5z" /><path d="M8 1.293l2.854 2.853-1.061 1.061L8.5 3.914V10h-1V3.914L6.207 5.207 5.146 4.146 8 1.293z" /></svg>}
                   label="Share"
-                  sub
+                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(window.location.href); toast("Link copied to clipboard"); setMenuOpen(false); }}
                 />
 
                 <div className="border-t border-[#3e3e3e] my-1" />
@@ -267,6 +274,7 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.669 11.538c-.147.224-.43.308-.655.16-1.793-1.095-4.05-1.342-6.71-.735a.47.47 0 01-.563-.34.47.47 0 01.34-.564c2.91-.665 5.406-.378 7.427.855.224.147.308.43.16.654zm.978-2.178c-.184.28-.568.4-.85.2-2.05-1.26-5.18-1.625-7.607-1.055a.607.607 0 11-.28-1.18c2.77-.645 6.21-.333 8.534 1.185.28.184.367.568.2.85zm.084-2.268C10.153 5.56 5.9 5.42 3.438 6.167a.727.727 0 11-.424-1.392c2.825-.858 7.523-.692 10.493 1.07a.726.726 0 01-.775 1.227z" /></svg>}
                   label="Open in Desktop app"
+                  onClick={(e) => { e.stopPropagation(); toast("Desktop app is not available"); setMenuOpen(false); }}
                 />
 
                 {/* Remove from playlist (only if onDelete) */}

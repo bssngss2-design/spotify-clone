@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { usePlayer } from "@/context/PlayerContext";
 import { formatDuration } from "@/lib/audioUtils";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { useToast } from "@/hooks/useToast";
 import { ConnectPopup } from "./ConnectPopup";
 
 interface PlayerProps {
@@ -36,6 +37,7 @@ export function Player({ activePanel, onToggleNowPlaying, onToggleQueue, onToggl
   } = usePlayer();
 
   const { isLiked, toggleLike } = useLikedSongs();
+  const { toast } = useToast();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -402,6 +404,7 @@ export function Player({ activePanel, onToggleNowPlaying, onToggleQueue, onToggl
 
           {/* Mini player -- picture-in-picture style */}
           <button
+            onClick={() => toast("Mini Player is not available yet")}
             className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
             title="Mini Player"
           >
@@ -413,6 +416,13 @@ export function Player({ activePanel, onToggleNowPlaying, onToggleQueue, onToggl
 
           {/* Fullscreen -- expand arrows */}
           <button
+            onClick={() => {
+              if (document.fullscreenElement) {
+                document.exitFullscreen();
+              } else {
+                document.documentElement.requestFullscreen();
+              }
+            }}
             className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors"
             title="Full screen"
           >

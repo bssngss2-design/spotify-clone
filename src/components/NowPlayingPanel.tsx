@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { useToast } from "@/hooks/useToast";
 
 interface NowPlayingPanelProps {
   onClose: () => void;
+  onToggleQueue?: () => void;
 }
 
-export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
-  const { currentSong, getUpcomingSongs } = usePlayer();
+export function NowPlayingPanel({ onClose, onToggleQueue }: NowPlayingPanelProps) {
+  const { currentSong, getUpcomingSongs, addToQueue } = usePlayer();
+  const { toast } = useToast();
+  const router = useRouter();
   const { isLiked, toggleLike } = useLikedSongs();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -33,7 +38,7 @@ export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
         <div className="px-4 pt-3 pb-1 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <svg className="w-4 h-4 text-[#b3b3b3] flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M15 14.5H5V13h10v1.5zm0-5.75H5v-1.5h10v1.5zM15 3H5V1.5h10V3zM3 3H1V1.5h2V3zm0 5.75H1v-1.5h2v1.5zM3 14.5H1V13h2v1.5z" /></svg>
-            <span className="text-sm font-bold text-white truncate">Liked Songs</span>
+            <span className="text-sm font-bold text-white truncate">Now Playing</span>
           </div>
           <div className="flex items-center gap-0.5">
             {/* ... menu */}
@@ -43,38 +48,38 @@ export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
               </button>
               {menuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-52 bg-[#282828] rounded-md shadow-2xl py-1 z-[70]">
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { toast("Use the song's context menu to add to playlist"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M15.25 8a.75.75 0 01-.75.75H8.75v5.75a.75.75 0 01-1.5 0V8.75H1.5a.75.75 0 010-1.5h5.75V1.5a.75.75 0 011.5 0v5.75h5.75a.75.75 0 01.75.75z" /></svg>
                     Add to playlist
                   </button>
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { if (currentSong) addToQueue(currentSong); toast("Added to queue"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5V4h11.5V1.5h1.5V7H1V5.5z" /></svg>
                     Add to queue
                   </button>
                   <div className="border-t border-[#3e3e3e] my-1" />
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { toast("Song radio is not available yet"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M8 5a3 3 0 100 6 3 3 0 000-6z" /></svg>
                     Go to song radio
                   </button>
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { if (currentSong?.artist) router.push(`/artist/${encodeURIComponent(currentSong.artist)}`); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M11.757 2.987A4 4 0 118.243 9.01a4 4 0 013.514-6.022zM8 6a2 2 0 104 0 2 2 0 00-4 0zm-3.5 6.5a5.5 5.5 0 0111 0V14h-11v-1.5z" /></svg>
                     Go to artist
                   </button>
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { if (currentSong?.album) router.push(`/album/${encodeURIComponent(currentSong.album)}`); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M8 6.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" /></svg>
                     Go to album
                   </button>
                   <div className="border-t border-[#3e3e3e] my-1" />
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { toast(`Credits: ${currentSong?.artist || "Unknown"} (Main Artist)`); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 2.5A2.5 2.5 0 013 0h10a2.5 2.5 0 012.5 2.5v11A2.5 2.5 0 0113 16H3a2.5 2.5 0 01-2.5-2.5v-11zm2.5-1a1 1 0 00-1 1v11a1 1 0 001 1h10a1 1 0 001-1v-11a1 1 0 00-1-1H3zm1.5 3a.5.5 0 01.5-.5h6a.5.5 0 010 1H5a.5.5 0 01-.5-.5zm0 3a.5.5 0 01.5-.5h6a.5.5 0 010 1H5a.5.5 0 01-.5-.5zm0 3a.5.5 0 01.5-.5h4a.5.5 0 010 1H5a.5.5 0 01-.5-.5z" /></svg>
                     View credits
                   </button>
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast("Link copied to clipboard"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5.75A.75.75 0 011.75 5H7v1.5H2.5v8h11V7H9V5.5h4.25a.75.75 0 01.75.75v9.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-9.5z" /><path d="M8 1.293l2.854 2.853-1.061 1.061L8.5 3.914V10h-1V3.914L6.207 5.207 5.146 4.146 8 1.293z" /></svg>
                     Share
                   </button>
                   <div className="border-t border-[#3e3e3e] my-1" />
-                  <button onClick={() => setMenuOpen(false)} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button onClick={() => { toast("Desktop app is not available"); setMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.669 11.538c-.147.224-.43.308-.655.16-1.793-1.095-4.05-1.342-6.71-.735a.47.47 0 01-.563-.34.47.47 0 01.34-.564c2.91-.665 5.406-.378 7.427.855.224.147.308.43.16.654zm.978-2.178c-.184.28-.568.4-.85.2-2.05-1.26-5.18-1.625-7.607-1.055a.607.607 0 11-.28-1.18c2.77-.645 6.21-.333 8.534 1.185.28.184.367.568.2.85z" /></svg>
                     Open in Desktop app
                   </button>
@@ -106,7 +111,7 @@ export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
               <p className="text-sm text-[#b3b3b3] truncate">{currentSong.artist || "Unknown artist"}</p>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Share">
+              <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast("Link copied to clipboard"); }} className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Share">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5.75A.75.75 0 011.75 5H7v1.5H2.5v8h11V7H9V5.5h4.25a.75.75 0 01.75.75v9.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-9.5z" /><path d="M8 1.293l2.854 2.853-1.061 1.061L8.5 3.914V10h-1V3.914L6.207 5.207 5.146 4.146 8 1.293z" /></svg>
               </button>
               <button onClick={() => toggleLike(currentSong.id)}
@@ -133,7 +138,7 @@ export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-base font-bold text-white">Credits</p>
-              <span className="text-xs text-[#b3b3b3] font-semibold hover:underline cursor-pointer">Show all</span>
+              <span className="text-xs text-[#b3b3b3] font-semibold hover:underline cursor-pointer" onClick={() => toast(`Credits: ${currentSong?.artist || "Unknown"} (Main Artist)`)}>Show all</span>
             </div>
             {currentSong.artist && (
               <div className="flex items-center justify-between py-2">
@@ -141,7 +146,7 @@ export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
                   <p className="text-sm text-white font-medium">{currentSong.artist}</p>
                   <p className="text-xs text-[#b3b3b3]">Main Artist</p>
                 </div>
-                <button className="px-3 py-1 text-xs font-bold text-white border border-[#727272] rounded-full hover:border-white hover:scale-105 transition-all">Follow</button>
+                <button onClick={() => toast("Follow is not available yet")} className="px-3 py-1 text-xs font-bold text-white border border-[#727272] rounded-full hover:border-white hover:scale-105 transition-all">Follow</button>
               </div>
             )}
           </div>
@@ -151,7 +156,7 @@ export function NowPlayingPanel({ onClose }: NowPlayingPanelProps) {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-base font-bold text-white">Next in queue</p>
-                <span className="text-xs text-[#b3b3b3] font-semibold hover:underline cursor-pointer">Open queue</span>
+                <span className="text-xs text-[#b3b3b3] font-semibold hover:underline cursor-pointer" onClick={onToggleQueue}>Open queue</span>
               </div>
               {upNext.map((song, i) => (
                 <div key={`${song.id}-${i}`} className="flex items-center gap-3 py-2 rounded-md hover:bg-[#1a1a1a] transition-colors group">

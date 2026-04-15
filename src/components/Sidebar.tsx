@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Playlist, createClient } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
 
 interface SidebarProps {
   playlists: Playlist[];
@@ -13,16 +14,20 @@ interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onCreatePlaylist?: () => void;
+  onDeletePlaylist?: (id: string) => void;
   onClose?: () => void;
 }
 
-export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed, onToggleCollapse, onCreatePlaylist, onClose }: SidebarProps) {
+export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed, onToggleCollapse, onCreatePlaylist, onDeletePlaylist, onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const { toast } = useToast();
   const supabase = createClient();
   const [librarySearch, setLibrarySearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState("playlists");
+  const [sortOrder, setSortOrder] = useState<"recents" | "alphabetical">("recents");
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; playlistId: string; playlistName: string } | null>(null);
   const ctxRef = useRef<HTMLDivElement>(null);
 
@@ -44,14 +49,18 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
     await supabase.from("playlists").delete().eq("id", id);
     setCtxMenu(null);
     if (pathname === `/playlist/${id}`) router.push("/");
-    else window.location.reload();
-  }, [supabase, pathname, router]);
+    onDeletePlaylist?.(id);
+  }, [supabase, pathname, router, onDeletePlaylist]);
 
   const handleNavClick = () => { onClose?.(); };
 
-  const filteredPlaylists = librarySearch
-    ? playlists.filter((p) => p.name.toLowerCase().includes(librarySearch.toLowerCase()))
+  const sortedPlaylists = sortOrder === "alphabetical"
+    ? [...playlists].sort((a, b) => a.name.localeCompare(b.name))
     : playlists;
+
+  const filteredPlaylists = librarySearch
+    ? sortedPlaylists.filter((p) => p.name.toLowerCase().includes(librarySearch.toLowerCase()))
+    : sortedPlaylists;
 
   if (collapsed) {
     return (
@@ -117,11 +126,12 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
 
         {/* Filter chips */}
         <div className="px-3 py-2 flex gap-2 overflow-x-auto no-scrollbar">
-          <span className="px-3 py-1.5 bg-white text-black text-xs font-semibold rounded-full whitespace-nowrap cursor-pointer">Playlists</span>
-          <span className="px-3 py-1.5 bg-[#232323] text-white text-xs font-semibold rounded-full whitespace-nowrap hover:bg-[#2a2a2a] cursor-pointer transition-colors">Artists</span>
-          <span className="px-3 py-1.5 bg-[#232323] text-white text-xs font-semibold rounded-full whitespace-nowrap hover:bg-[#2a2a2a] cursor-pointer transition-colors flex items-center gap-1">
-            Podcasts &amp; Shows
-          </span>
+          {(["playlists", "artists", "podcasts"] as const).map((filter) => (
+            <button key={filter} onClick={() => setActiveFilter(filter)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full whitespace-nowrap cursor-pointer transition-colors ${activeFilter === filter ? "bg-white text-black" : "bg-[#232323] text-white hover:bg-[#2a2a2a]"}`}>
+              {filter === "playlists" ? "Playlists" : filter === "artists" ? "Artists" : "Podcasts & Shows"}
+            </button>
+          ))}
         </div>
 
         {/* Search + Recents row */}
@@ -151,10 +161,10 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1 text-[#b3b3b3]">
-            <span className="text-xs font-medium hover:text-white cursor-pointer transition-colors">Recents</span>
-            <svg className="w-4 h-4 hover:text-white cursor-pointer transition-colors" fill="currentColor" viewBox="0 0 16 16"><path d="M15 14.5H5V13h10v1.5zm0-5.75H5v-1.5h10v1.5zM15 3H5V1.5h10V3zM3 3H1V1.5h2V3zm0 5.75H1v-1.5h2v1.5zM3 14.5H1V13h2v1.5z" /></svg>
-          </div>
+          <button onClick={() => setSortOrder((p) => p === "recents" ? "alphabetical" : "recents")} className="flex items-center gap-1 text-[#b3b3b3] hover:text-white transition-colors">
+            <span className="text-xs font-medium">{sortOrder === "recents" ? "Recents" : "A-Z"}</span>
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15 14.5H5V13h10v1.5zm0-5.75H5v-1.5h10v1.5zM15 3H5V1.5h10V3zM3 3H1V1.5h2V3zm0 5.75H1v-1.5h2v1.5zM3 14.5H1V13h2v1.5z" /></svg>
+          </button>
         </div>
 
         {/* Playlist list */}
@@ -210,7 +220,7 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
       {/* Playlist right-click context menu */}
       {ctxMenu && (
         <div ref={ctxRef} className="fixed z-[80] w-56 bg-[#282828] rounded-md shadow-2xl py-1" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
-          <button onClick={() => { setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+          <button onClick={() => { toast("Added playlist to queue"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5V4h11.5V1.5h1.5V7H1V5.5z" /></svg>
             Add to queue
           </button>
@@ -227,25 +237,36 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M2 0a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V2a2 2 0 00-2-2H2zm6.75 4.5a.75.75 0 00-1.5 0v3h-3a.75.75 0 000 1.5h3v3a.75.75 0 001.5 0v-3h3a.75.75 0 000-1.5h-3v-3z" /></svg>
             Create playlist
           </button>
-          <button onClick={() => setCtxMenu(null)} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+          <button onClick={() => { toast("Folders are not available yet"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 012.5 2h3A1.5 1.5 0 017 3.5V4h5.5A1.5 1.5 0 0114 5.5v7a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9zm1.5 0V4H5V3.5H2.5zm0 2v7h9v-7h-9z" /></svg>
             Create folder
           </button>
           <div className="border-t border-[#3e3e3e] my-1" />
-          <button onClick={() => setCtxMenu(null)} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+          <button onClick={() => { toast("Public playlists are not available yet"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /></svg>
             Make public
           </button>
-          <button onClick={() => setCtxMenu(null)} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+          <button onClick={() => { toast("Collaboration is not available yet"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M11.757 2.987A4 4 0 118.243 9.01a4 4 0 013.514-6.022zM8 6a2 2 0 104 0 2 2 0 00-4 0zm-3.5 6.5a5.5 5.5 0 0111 0V14h-11v-1.5z" /></svg>
             Invite collaborators
           </button>
-          <button onClick={() => setCtxMenu(null)} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+          <button onClick={() => { toast("Taste profile is not available yet"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zM4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z" /></svg>
             Exclude from your taste profile
           </button>
           <div className="border-t border-[#3e3e3e] my-1" />
-          <button onClick={() => setCtxMenu(null)} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3 justify-between">
+          <button onClick={() => { toast("Folders are not available yet"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3 justify-between">
+            <div className="flex items-center gap-3">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 012.5 2h3A1.5 1.5 0 017 3.5V4h5.5A1.5 1.5 0 0114 5.5v7a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9zm1.5 0V4H5V3.5H2.5zm0 2v7h9v-7h-9z" /></svg>
+              Move to folder
+            </div>
+            <svg className="w-3 h-3 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 3.646a.5.5 0 01.708 0l4 4a.5.5 0 010 .708l-4 4a.5.5 0 01-.708-.708L8.293 8 4.646 4.354a.5.5 0 010-.708z" /></svg>
+          </button>
+          <button onClick={() => { toast("Playlist unpinned"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+            <svg className="w-4 h-4 text-[#1db954]" fill="currentColor" viewBox="0 0 16 16"><path d="M8.822.797a2.72 2.72 0 013.847 0l2.534 2.533a2.72 2.72 0 010 3.848l-6.356 6.355a.8.8 0 01-.566.235H3.28a3.51 3.51 0 01-2.481-1.028A3.51 3.51 0 01-.23 10.26V5.26a.8.8 0 01.236-.566L6.36 1.34z" /></svg>
+            Unpin playlist
+          </button>
+          <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast("Link copied to clipboard"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3 justify-between">
             <div className="flex items-center gap-3">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5.75A.75.75 0 011.75 5H7v1.5H2.5v8h11V7H9V5.5h4.25a.75.75 0 01.75.75v9.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-9.5z" /><path d="M8 1.293l2.854 2.853-1.061 1.061L8.5 3.914V10h-1V3.914L6.207 5.207 5.146 4.146 8 1.293z" /></svg>
               Share

@@ -74,6 +74,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Shuffled indices for shuffle mode
   const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
 
+  // Tracks how many songs have been manually queued after current song
+  const queueInsertOffset = useRef(0);
+
   // Create shuffled order
   const shuffleArray = useCallback((length: number, currentIdx: number) => {
     const indices = Array.from({ length }, (_, i) => i);
@@ -92,7 +95,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playQueue = useCallback(
     (songs: Song[], startIndex = 0) => {
       if (songs.length === 0) return;
-      
+      queueInsertOffset.current = 0;
+
       setState((prev) => ({
         ...prev,
         queue: songs,
@@ -120,12 +124,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setShuffledIndices([0]);
   }, []);
 
-  // Add song to queue
+  // Add song to queue -- inserts right after currently playing (or after last queued song)
   const addToQueue = useCallback((song: Song) => {
-    setState((prev) => ({
-      ...prev,
-      queue: [...prev.queue, song],
-    }));
+    const offset = queueInsertOffset.current;
+    queueInsertOffset.current = offset + 1;
+    setState((prev) => {
+      const insertAt = prev.currentIndex + 1 + offset;
+      const newQueue = [...prev.queue];
+      newQueue.splice(insertAt, 0, song);
+      return { ...prev, queue: newQueue };
+    });
   }, []);
 
   // Get next index considering shuffle
@@ -195,6 +203,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Next track
   const next = useCallback(() => {
+    queueInsertOffset.current = 0;
     const nextIdx = getNextIndex();
     if (nextIdx >= 0 && nextIdx < state.queue.length) {
       setState((prev) => ({
@@ -210,6 +219,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Previous track (or restart if > 3 seconds in)
   const previous = useCallback(() => {
+    queueInsertOffset.current = 0;
     if (state.currentTime > 3) {
       // Restart current song
       if (audioRef.current) {

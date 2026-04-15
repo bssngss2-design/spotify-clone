@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
 
 export function TopBar() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,6 +15,7 @@ export function TopBar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -100,7 +102,13 @@ export function TopBar() {
           </button>
         )}
         {!searchQuery && (
-          <div className="pr-3 border-l border-[#535353] pl-3 flex items-center">
+          <div
+            className="pr-3 border-l border-[#535353] pl-3 flex items-center cursor-pointer"
+            onClick={() => {
+              const input = document.querySelector('input[placeholder="What do you want to play?"]') as HTMLInputElement;
+              if (input) input.focus();
+            }}
+          >
             <svg className="w-5 h-5 text-foreground-subdued hover:text-white cursor-pointer transition-colors" fill="currentColor" viewBox="0 0 24 24">
               <path d="M15 15.5c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM1 4.75A3.75 3.75 0 014.75 1h14.5A3.75 3.75 0 0123 4.75v14.5A3.75 3.75 0 0119.25 23H4.75A3.75 3.75 0 011 19.25V4.75zm3.75-2.25A2.25 2.25 0 002.5 4.75v14.5a2.25 2.25 0 002.25 2.25h14.5a2.25 2.25 0 002.25-2.25V4.75a2.25 2.25 0 00-2.25-2.25H4.75z" />
             </svg>
@@ -111,13 +119,13 @@ export function TopBar() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-1">
-        <button className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white hover:scale-105 transition-all" title="What's New">
+        <button onClick={() => toast("What's New is not available yet")} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white hover:scale-105 transition-all" title="What's New">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <path d="M8 1.5a4.492 4.492 0 00-4.482 4.199 23.656 23.656 0 01-.964 4.588l-.354 1.103H13.8l-.354-1.103a23.657 23.657 0 01-.964-4.588A4.492 4.492 0 008 1.5zM0 11.388l.65-2.025a21.655 21.655 0 00.882-4.203A6.492 6.492 0 018 0a6.492 6.492 0 016.468 5.16 21.656 21.656 0 00.882 4.203l.65 2.025H0zm5 2.112a3 3 0 106 0H5z" />
           </svg>
         </button>
 
-        <button className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white hover:scale-105 transition-all" title="Friend Activity">
+        <button onClick={() => toast("Friend Activity is not available yet")} className="w-8 h-8 rounded-full flex items-center justify-center text-foreground-subdued hover:text-white hover:scale-105 transition-all" title="Friend Activity">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
             <path d="M4.5 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7zM3 5.5a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm8.5-3.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM10 4.5a1.5 1.5 0 113.001.001A1.5 1.5 0 0110 4.5zM1 14a3.5 3.5 0 013.5-3.5h.382a4.97 4.97 0 00-.382 1.921V14H1zm5.5 0v-1.579A3.421 3.421 0 019.921 9h1.658A3.421 3.421 0 0115 12.421V14H6.5z" />
           </svg>

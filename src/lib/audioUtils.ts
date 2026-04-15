@@ -1,5 +1,23 @@
 import * as musicMetadata from "music-metadata-browser";
 
+function parseFilenameMetadata(filename: string): { title: string; artist: string | null } {
+  const name = filename.replace(/\.[^/.]+$/, "").trim();
+
+  // "Artist - Title" or "Artist — Title"
+  const dashMatch = name.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+  if (dashMatch) {
+    return { artist: dashMatch[1].trim(), title: dashMatch[2].trim() };
+  }
+
+  // "Artist_Title" (underscores as separators, at least 2 parts)
+  const parts = name.split("_").filter(Boolean);
+  if (parts.length >= 2) {
+    return { artist: parts[0].trim(), title: parts.slice(1).join(" ").trim() };
+  }
+
+  return { title: name, artist: null };
+}
+
 export interface AudioMetadata {
   title: string;
   artist: string | null;
@@ -28,22 +46,22 @@ export async function extractAudioMetadata(
       coverUrl = URL.createObjectURL(blob);
     }
     
-    // Use filename as title fallback
-    const title = metadata.common.title || file.name.replace(/\.[^/.]+$/, "");
-    
+    const filenameParsed = parseFilenameMetadata(file.name);
+    const title = metadata.common.title || filenameParsed.title;
+
     return {
       title,
-      artist: metadata.common.artist || null,
+      artist: metadata.common.artist || filenameParsed.artist,
       album: metadata.common.album || null,
       duration: Math.round(metadata.format.duration || 0),
       coverUrl,
     };
   } catch (error) {
     console.error("Error extracting metadata:", error);
-    // Return basic info from filename
+    const filenameParsed = parseFilenameMetadata(file.name);
     return {
-      title: file.name.replace(/\.[^/.]+$/, ""),
-      artist: null,
+      title: filenameParsed.title,
+      artist: filenameParsed.artist,
       album: null,
       duration: 0,
       coverUrl: null,

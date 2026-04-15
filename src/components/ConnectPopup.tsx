@@ -1,10 +1,13 @@
 "use client";
 
+import { useToast } from "@/hooks/useToast";
+
 interface ConnectPopupProps {
   onClose: () => void;
 }
 
 export function ConnectPopup({ onClose }: ConnectPopupProps) {
+  const { toast } = useToast();
   return (
     <div className="absolute bottom-full right-0 mb-2 w-80 bg-[#282828] rounded-lg shadow-2xl z-50 overflow-hidden">
       <div className="p-4 flex items-center justify-between">
@@ -61,11 +64,11 @@ export function ConnectPopup({ onClose }: ConnectPopupProps) {
       </div>
 
       <div className="px-4 pb-4 space-y-2 border-t border-border pt-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between cursor-pointer hover:text-white transition-colors" onClick={() => toast("Help articles are not available")}>
           <span className="text-sm text-foreground-subdued">Don&apos;t see your device?</span>
           <svg className="w-4 h-4 text-foreground-subdued" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.75A.75.75 0 011.75 2H7v1.5H2.5v10h10V9H14v5.25a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75V2.75z" /><path d="M15 1.5H10V0h5.25a.75.75 0 01.75.75V6h-1.5V2.56l-5.22 5.22-1.06-1.06L13.44 1.5z" /></svg>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between cursor-pointer hover:text-white transition-colors" onClick={() => toast("Help articles are not available")}>
           <span className="text-sm text-foreground-subdued">What can I connect to?</span>
           <svg className="w-4 h-4 text-foreground-subdued" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.75A.75.75 0 011.75 2H7v1.5H2.5v10h10V9H14v5.25a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75V2.75z" /><path d="M15 1.5H10V0h5.25a.75.75 0 01.75.75V6h-1.5V2.56l-5.22 5.22-1.06-1.06L13.44 1.5z" /></svg>
         </div>

@@ -11,6 +11,7 @@ import { LyricsPanel } from "./LyricsPanel";
 import { createClient, Playlist } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { ToastProvider } from "@/hooks/useToast";
 
 type RightPanel = "none" | "now-playing" | "queue" | "lyrics";
 
@@ -66,12 +67,22 @@ export function MainLayout({ children }: MainLayoutProps) {
     if (data) setPlaylists((prev) => [data, ...prev]);
   };
 
+  const handleDeletePlaylist = useCallback((id: string) => {
+    setPlaylists((prev) => prev.filter((p) => p.id !== id));
+    setPlaylistCovers((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
   const togglePanel = (panel: RightPanel) => {
     setRightPanel((prev) => (prev === panel ? "none" : panel));
   };
 
   return (
     <PlayerProvider>
+      <ToastProvider>
       <div className="h-screen flex flex-col bg-black">
         <div className="hidden md:block">
           <TopBar />
@@ -98,11 +109,11 @@ export function MainLayout({ children }: MainLayoutProps) {
           )}
 
           <div className={`fixed md:hidden inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-            <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={false} onToggleCollapse={() => {}} onCreatePlaylist={handleCreatePlaylist} onClose={() => setSidebarOpen(false)} />
+            <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={false} onToggleCollapse={() => {}} onCreatePlaylist={handleCreatePlaylist} onDeletePlaylist={handleDeletePlaylist} onClose={() => setSidebarOpen(false)} />
           </div>
 
           <div className="hidden md:block flex-shrink-0">
-            <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onCreatePlaylist={handleCreatePlaylist} />
+            <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onCreatePlaylist={handleCreatePlaylist} onDeletePlaylist={handleDeletePlaylist} />
           </div>
 
           <main className="flex-1 overflow-y-auto bg-background-elevated md:rounded-lg md:mr-2 md:mb-2">
@@ -112,7 +123,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           {/* Right panels */}
           {rightPanel === "now-playing" && (
             <div className="hidden md:block flex-shrink-0">
-              <NowPlayingPanel onClose={() => setRightPanel("none")} />
+              <NowPlayingPanel onClose={() => setRightPanel("none")} onToggleQueue={() => togglePanel("queue")} />
             </div>
           )}
           {rightPanel === "queue" && (
@@ -134,6 +145,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           onToggleLyrics={() => togglePanel("lyrics")}
         />
       </div>
+      </ToastProvider>
     </PlayerProvider>
   );
 }

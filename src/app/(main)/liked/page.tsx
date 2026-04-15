@@ -7,13 +7,15 @@ import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 import { formatDuration } from "@/lib/audioUtils";
 import { TrackRow } from "@/components/TrackRow";
+import { useToast } from "@/hooks/useToast";
 
 export default function LikedSongsPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { playQueue, currentSong } = usePlayer();
+  const { playQueue, currentSong, toggleShuffle } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
+  const { toast } = useToast();
   const supabase = createClient();
   const [viewMode, setViewMode] = useState<"list" | "compact">("list");
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
@@ -100,7 +102,7 @@ export default function LikedSongsPage() {
           </button>
         )}
         {songs.length > 0 && (
-          <button className="w-10 h-10 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Shuffle">
+          <button onClick={() => { playQueue(songs); toggleShuffle(); }} className="w-10 h-10 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Shuffle">
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16">
               <path d="M13.151.922a.75.75 0 10-1.06 1.06L13.109 3H11.16a3.75 3.75 0 00-2.873 1.34l-6.173 7.356A2.25 2.25 0 01.39 12.5H0V14h.391a3.75 3.75 0 002.873-1.34l6.173-7.356a2.25 2.25 0 011.724-.804h1.947l-1.017 1.018a.75.75 0 001.06 1.06l2.306-2.306a.75.75 0 000-1.06L13.15.922zM.391 3.5H0V2h.391c1.109 0 2.16.49 2.873 1.34L4.89 5.277l-.979 1.167-1.796-2.14A2.25 2.25 0 00.39 3.5z" />
               <path d="M7.5 10.723l.98-1.167.957 1.14a2.25 2.25 0 001.724.804h1.947l-1.017-1.018a.75.75 0 111.06-1.06l2.306 2.306a.75.75 0 010 1.06l-2.306 2.306a.75.75 0 11-1.06-1.06L13.109 13H11.16a3.75 3.75 0 01-2.873-1.34l-.787-.938z" />
@@ -109,7 +111,7 @@ export default function LikedSongsPage() {
         )}
         {/* Download */}
         {songs.length > 0 && (
-          <button className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Download">
+          <button onClick={() => toast("Download is not available yet")} className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Download">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v5m0 0l-2.5-2.5M12 13l2.5-2.5M8 16h8" />
@@ -166,7 +168,7 @@ export default function LikedSongsPage() {
               </svg>
             </div>
           </div>
-          <div className="mt-2 pb-6">
+          <div className={`mt-2 pb-6 ${viewMode === "compact" ? "[&>div]:py-0.5" : ""}`}>
             {songs.map((song, index) => (
               <TrackRow
                 key={song.id}
