@@ -8,7 +8,7 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import { NowPlayingPanel } from "./NowPlayingPanel";
 import { QueuePanel } from "./QueuePanel";
 import { LyricsPanel } from "./LyricsPanel";
-import { createClient, Playlist } from "@/lib/supabase";
+import { api, Playlist } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 import { ToastProvider } from "@/hooks/useToast";
@@ -24,48 +24,33 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanel, setRightPanel] = useState<RightPanel>("none");
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { likedCount } = useLikedSongs();
-  const supabase = createClient();
 
   const [playlistCovers, setPlaylistCovers] = useState<Record<string, string | null>>({});
 
   const fetchPlaylists = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("playlists")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (data) {
+    try {
+      const data = await api.get<Playlist[]>("/api/playlists");
       setPlaylists(data);
-      const covers: Record<string, string | null> = {};
-      for (const pl of data) {
-        const { data: ps } = await supabase
-          .from("playlist_songs")
-          .select("song:songs(cover_url)")
-          .eq("playlist_id", pl.id)
-          .order("position")
-          .limit(1);
-        const firstSong = ps?.[0] as { song: { cover_url: string | null } } | undefined;
-        covers[pl.id] = firstSong?.song?.cover_url || null;
-      }
-      setPlaylistCovers(covers);
+    } catch {
+      // api wrapper handles 401 redirect
     }
-  }, [user, supabase]);
+  }, []);
 
-  useEffect(() => { fetchPlaylists(); }, [fetchPlaylists]);
+  useEffect(() => { if (!loading && user) fetchPlaylists(); }, [loading, user, fetchPlaylists]);
 
   const handleCreatePlaylist = async (): Promise<string | null> => {
     if (!user) return null;
-    const playlistNumber = playlists.length + 1;
-    const { data, error } = await supabase
-      .from("playlists")
-      .insert({ user_id: user.id, name: `My Playlist #${playlistNumber}` })
-      .select()
-      .single();
-    if (error) { alert("Failed to create playlist: " + error.message); return null; }
-    if (data) { setPlaylists((prev) => [data, ...prev]); return data.id; }
-    return null;
+    try {
+      const playlistNumber = playlists.length + 1;
+      const data = await api.post<Playlist>("/api/playlists", { name: `My Playlist #${playlistNumber}` });
+      setPlaylists((prev) => [data, ...prev]);
+      return data.id;
+    } catch (err) {
+      alert("Failed to create playlist: " + (err instanceof Error ? err.message : "Unknown error"));
+      return null;
+    }
   };
 
   const handleDeletePlaylist = useCallback((id: string) => {

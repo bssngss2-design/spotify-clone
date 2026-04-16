@@ -12,6 +12,9 @@ COPY . .
 # Build args for Next.js (NEXT_PUBLIC_ vars must be available at build time)
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Rewrites in next.config.ts read this at build time
+ARG BACKEND_URL=http://backend:8000
+ENV BACKEND_URL=$BACKEND_URL
 
 # Build the app with env vars
 RUN NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \

@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { createClient, Song, Playlist, PlaylistSong } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { api, Song, Playlist } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 import { formatDuration } from "@/lib/audioUtils";
@@ -27,11 +26,9 @@ export default function PlaylistPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const { user } = useAuth();
   const { playQueue, currentSong, isPlaying, toggleShuffle, addToQueue } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
   const { toast } = useToast();
-  const supabase = createClient();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -42,60 +39,62 @@ export default function PlaylistPage() {
   }, []);
 
   const fetchPlaylist = useCallback(async () => {
-    if (!user || !playlistId) return;
+    if (!playlistId) return;
     setLoading(true);
+    try {
+      const data = await api.get<{
+        id: string; name: string; user_id: string; created_at: string;
+        songs: { song: Song; position: number }[];
+      }>("/api/playlists/" + playlistId);
 
-    const { data: playlistData } = await supabase.from("playlists").select("*").eq("id", playlistId).single();
-    if (!playlistData) { router.push("/"); return; }
+      setPlaylist({ id: data.id, name: data.name, user_id: data.user_id, created_at: data.created_at });
+      setEditName(data.name);
+      setSongs(data.songs.map((ps) => ps.song).filter(Boolean));
 
-    setPlaylist(playlistData);
-    setEditName(playlistData.name);
-
-    const { data: playlistSongs } = await supabase
-      .from("playlist_songs")
-      .select("*, song:songs(*)")
-      .eq("playlist_id", playlistId)
-      .order("position", { ascending: true });
-
-    if (playlistSongs) {
-      setSongs(playlistSongs.map((ps: PlaylistSong & { song: Song }) => ps.song).filter(Boolean));
+      const allSongsData = await api.get<Song[]>("/api/songs");
+      setAllSongs(allSongsData);
+    } catch {
+      router.push("/");
+      return;
     }
-
-    const { data: allSongsData } = await supabase.from("songs").select("*").order("title", { ascending: true });
-    if (allSongsData) setAllSongs(allSongsData);
-
     setLoading(false);
-  }, [user, playlistId, router, supabase]);
+  }, [playlistId, router]);
 
   useEffect(() => { fetchPlaylist(); }, [fetchPlaylist]);
 
   const handleUpdateName = async () => {
     if (!playlist || !editName.trim()) return;
-    const { error } = await supabase.from("playlists").update({ name: editName.trim() }).eq("id", playlist.id);
-    if (!error) setPlaylist({ ...playlist, name: editName.trim() });
+    try {
+      await api.patch("/api/playlists/" + playlist.id, { name: editName.trim() });
+      setPlaylist({ ...playlist, name: editName.trim() });
+    } catch { /* handled by api wrapper */ }
     setIsEditing(false);
   };
 
   const handleDeletePlaylist = async () => {
     if (!playlist) return;
     if (!confirm(`Delete "${playlist.name}"?`)) return;
-    const { error } = await supabase.from("playlists").delete().eq("id", playlist.id);
-    if (!error) router.push("/");
+    try {
+      await api.del("/api/playlists/" + playlist.id);
+      router.push("/");
+    } catch { /* handled by api wrapper */ }
   };
 
   const handleAddSong = async (songId: string) => {
     if (!playlist || songs.some((s) => s.id === songId)) return;
-    const { error } = await supabase.from("playlist_songs").insert({ playlist_id: playlist.id, song_id: songId, position: songs.length });
-    if (!error) {
+    try {
+      await api.post("/api/playlists/" + playlist.id + "/songs", { song_id: songId });
       const newSong = allSongs.find((s) => s.id === songId);
       if (newSong) setSongs((prev) => [...prev, newSong]);
-    }
+    } catch { /* handled by api wrapper */ }
   };
 
   const handleRemoveSong = async (songId: string) => {
     if (!playlist) return;
-    const { error } = await supabase.from("playlist_songs").delete().eq("playlist_id", playlist.id).eq("song_id", songId);
-    if (!error) setSongs((prev) => prev.filter((s) => s.id !== songId));
+    try {
+      await api.del("/api/playlists/" + playlist.id + "/songs/" + songId);
+      setSongs((prev) => prev.filter((s) => s.id !== songId));
+    } catch { /* handled by api wrapper */ }
   };
 
   const totalDuration = songs.reduce((acc, song) => acc + song.duration, 0);

@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Song, Playlist, createClient } from "@/lib/supabase";
+import { api, Song, Playlist } from "@/lib/api";
 import { formatDuration } from "@/lib/audioUtils";
 import { usePlayer } from "@/context/PlayerContext";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { CreditsModal } from "./CreditsModal";
 
@@ -21,7 +20,6 @@ interface TrackRowProps {
 
 export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay, onDelete }: TrackRowProps) {
   const { isPlaying, addToQueue, currentSong } = usePlayer();
-  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,7 +31,6 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
   const [shareSubOpen, setShareSubOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
-  const supabase = createClient();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -47,10 +44,13 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
   }, [menuOpen]);
 
   const fetchPlaylists = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase.from("playlists").select("*").order("name");
-    if (data) setPlaylists(data);
-  }, [user, supabase]);
+    try {
+      const data = await api.get<Playlist[]>("/api/playlists");
+      setPlaylists(data);
+    } catch {
+      // api handles 401
+    }
+  }, []);
 
   const openMenu = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,39 +66,21 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
   };
 
   const addToPlaylist = async (playlistId: string) => {
-    const { data: existing } = await supabase
-      .from("playlist_songs")
-      .select("id")
-      .eq("playlist_id", playlistId)
-      .eq("song_id", song.id)
-      .single();
-    if (existing) { setMenuOpen(false); return; }
-    const { data: count } = await supabase
-      .from("playlist_songs")
-      .select("id", { count: "exact" })
-      .eq("playlist_id", playlistId);
-    await supabase.from("playlist_songs").insert({
-      playlist_id: playlistId,
-      song_id: song.id,
-      position: count?.length || 0,
-    });
+    try {
+      await api.post("/api/playlists/" + playlistId + "/songs", { song_id: song.id });
+    } catch {
+      // backend handles duplicates
+    }
     setMenuOpen(false);
     setPlaylistSubOpen(false);
   };
 
   const createAndAdd = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("playlists")
-      .insert({ user_id: user.id, name: `My Playlist #${playlists.length + 1}` })
-      .select()
-      .single();
-    if (data) {
-      await supabase.from("playlist_songs").insert({
-        playlist_id: data.id,
-        song_id: song.id,
-        position: 0,
-      });
+    try {
+      const newPlaylist = await api.post<Playlist>("/api/playlists", { name: `My Playlist #${playlists.length + 1}` });
+      await api.post("/api/playlists/" + newPlaylist.id + "/songs", { song_id: song.id });
+    } catch {
+      // api handles errors
     }
     setMenuOpen(false);
     setPlaylistSubOpen(false);

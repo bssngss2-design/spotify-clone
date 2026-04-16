@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { createClient, Song } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { api, Song } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 import { TrackRow } from "@/components/TrackRow";
@@ -13,22 +12,17 @@ export default function AlbumPage() {
   const albumName = decodeURIComponent(params.name as string);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
   const { playQueue, currentSong } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
-  const supabase = createClient();
 
   const fetchSongs = useCallback(async () => {
-    if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("songs")
-      .select("*")
-      .ilike("album", albumName)
-      .order("title");
-    if (data) setSongs(data);
+    try {
+      const data = await api.get<Song[]>("/api/songs?album=" + encodeURIComponent(albumName));
+      setSongs(data);
+    } catch { /* handled by api wrapper */ }
     setLoading(false);
-  }, [user, supabase, albumName]);
+  }, [albumName]);
 
   useEffect(() => { fetchSongs(); }, [fetchSongs]);
 

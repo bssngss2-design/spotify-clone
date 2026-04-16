@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient, Song } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { api, Song } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 import { formatDuration } from "@/lib/audioUtils";
@@ -12,11 +11,9 @@ import { useToast } from "@/hooks/useToast";
 export default function LikedSongsPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
   const { playQueue, currentSong } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
   const { toast } = useToast();
-  const supabase = createClient();
   const [viewMode, setViewMode] = useState<"list" | "compact">("list");
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const viewMenuRef = useRef<HTMLDivElement>(null);
@@ -30,22 +27,13 @@ export default function LikedSongsPage() {
   }, [viewMenuOpen]);
 
   const fetchLikedSongs = useCallback(async () => {
-    if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("liked_songs")
-      .select("song_id, songs(*)")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (data) {
-      const songsData = data
-        .map((r: { song_id: string; songs: Song }) => r.songs)
-        .filter(Boolean);
-      setSongs(songsData);
-    }
+    try {
+      const data = await api.get<{ song_id: string; song: Song }[]>("/api/liked");
+      setSongs(data.map((r) => r.song).filter(Boolean));
+    } catch { /* handled by api wrapper */ }
     setLoading(false);
-  }, [user, supabase]);
+  }, []);
 
   useEffect(() => {
     fetchLikedSongs();

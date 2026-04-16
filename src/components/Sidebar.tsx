@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Playlist, createClient } from "@/lib/supabase";
+import { api, Playlist, Song } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { usePlayer } from "@/context/PlayerContext";
@@ -24,7 +24,6 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
-  const supabase = createClient();
   const { addToQueue } = usePlayer();
   const [librarySearch, setLibrarySearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -51,25 +50,23 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
   };
 
   const deletePlaylist = useCallback(async (id: string) => {
-    await supabase.from("playlists").delete().eq("id", id);
+    await api.del("/api/playlists/" + id);
     setCtxMenu(null);
     if (pathname === `/playlist/${id}`) router.push("/");
     onDeletePlaylist?.(id);
-  }, [supabase, pathname, router, onDeletePlaylist]);
+  }, [pathname, router, onDeletePlaylist]);
 
   const handleNavClick = () => { onClose?.(); };
 
   const queuePlaylistSongs = useCallback(async (playlistId: string) => {
-    const { data } = await supabase
-      .from("playlist_songs")
-      .select("songs(*)")
-      .eq("playlist_id", playlistId)
-      .order("position");
-    if (data) {
-      const songs = data.map((r: Record<string, unknown>) => r.songs).filter(Boolean);
-      songs.forEach((s: unknown) => addToQueue(s as import("@/lib/supabase").Song));
+    try {
+      const detail = await api.get<{ songs: { song: Song }[] }>("/api/playlists/" + playlistId);
+      const songs = detail.songs.map((ps) => ps.song).filter(Boolean);
+      songs.forEach((s) => addToQueue(s as Song));
+    } catch {
+      // silently fail
     }
-  }, [supabase, addToQueue]);
+  }, [addToQueue]);
 
   const sortedPlaylists = sortOrder === "alphabetical"
     ? [...playlists].sort((a, b) => a.name.localeCompare(b.name))

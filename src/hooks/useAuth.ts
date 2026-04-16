@@ -1,74 +1,73 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase";
+import { useState, useEffect, useCallback } from "react";
+import { api } from "@/lib/api";
+
+interface User {
+  id: string;
+  email: string;
+}
+
+interface AuthState {
+  user: User | null;
+  session: boolean;
+  loading: boolean;
+}
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [state, setState] = useState<AuthState>({ user: null, session: false, loading: true });
 
   useEffect(() => {
-    // Get initial session — handle offline gracefully
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      })
+    const token = api.getToken();
+    if (!token) {
+      setState({ user: null, session: false, loading: false });
+      return;
+    }
+    api.get<User>("/api/auth/me")
+      .then((user) => setState({ user, session: true, loading: false }))
       .catch(() => {
-        // Offline — keep whatever state we have, just stop loading
-        setLoading(false);
+        api.clearToken();
+        setState({ user: null, session: false, loading: false });
       });
+  }, []);
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const data = await api.post<{ access_token: string; user: User }>("/api/auth/login", { email, password });
+      api.setToken(data.access_token);
+      setState({ user: data.user, session: true, loading: false });
+      return { error: null };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const message =
+        msg === "Failed to fetch" || msg === "Load failed"
+          ? "API unreachable — is FastAPI running? Check BACKEND_URL matches the backend port."
+          : msg || "Login failed";
+      return { error: { message } };
+    }
+  }, []);
 
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+  const signUp = useCallback(async (email: string, password: string) => {
+    try {
+      const data = await api.post<{ access_token: string; user: User }>("/api/auth/register", { email, password });
+      api.setToken(data.access_token);
+      setState({ user: data.user, session: true, loading: false });
+      return { error: null, data: { user: data.user, session: true } };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const message =
+        msg === "Failed to fetch" || msg === "Load failed"
+          ? "API unreachable — is FastAPI running? Check BACKEND_URL matches the backend port."
+          : msg || "Signup failed";
+      return { error: { message }, data: { user: null, session: null } };
+    }
+  }, []);
 
-  const signUp = useCallback(
-    async (email: string, password: string) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      return { data, error };
-    },
-    [supabase.auth]
-  );
+  const signOut = useCallback(() => {
+    api.clearToken();
+    setState({ user: null, session: false, loading: false });
+    window.location.href = "/login";
+  }, []);
 
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      return { data, error };
-    },
-    [supabase.auth]
-  );
-
-  const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
-  }, [supabase.auth]);
-
-  return {
-    user,
-    session,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-  };
+  return { ...state, signIn, signUp, signOut };
 }

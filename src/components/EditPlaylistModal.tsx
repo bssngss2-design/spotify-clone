@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Playlist, createClient } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { api, Playlist } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 
 interface EditPlaylistModalProps {
@@ -18,21 +17,18 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
   const [previewUrl, setPreviewUrl] = useState<string | null>(coverUrl || null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
   const { toast } = useToast();
-  const supabase = createClient();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${user.id}/playlist-covers/${playlist.id}.${ext}`;
-      await supabase.storage.from("audio").upload(path, file, { upsert: true });
-      const { data: urlData } = supabase.storage.from("audio").getPublicUrl(path);
-      if (urlData?.publicUrl) setPreviewUrl(urlData.publicUrl);
+      const formData = new FormData();
+      formData.append("file", file);
+      const { url } = await api.upload<{ url: string }>("/api/playlists/" + playlist.id + "/cover", formData);
+      if (url) setPreviewUrl(url);
     } catch {
       toast("Failed to upload cover image");
     }
@@ -41,7 +37,7 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    await supabase.from("playlists").update({ name: name.trim() }).eq("id", playlist.id);
+    await api.patch("/api/playlists/" + playlist.id, { name: name.trim() });
     onSave({ name: name.trim(), coverUrl: previewUrl || undefined });
     onClose();
   };

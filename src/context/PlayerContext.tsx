@@ -9,8 +9,9 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { Song } from "@/lib/supabase";
-import { getCachedAudio, cacheAudioFile, getAllCachedSongIds } from "@/lib/offlineStorage";
+import { api, Song } from "@/lib/api";
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export type RepeatMode = "off" | "all" | "one";
 
@@ -310,7 +311,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // No song selected — nothing to do
     if (!state.currentSong) {
       audio.pause();
       return;
@@ -319,7 +319,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const songId = state.currentSong.id;
     const songChanged = songId !== loadedSongId.current;
 
-    // ── SAME SONG: just toggle play/pause (synchronous, no source change) ──
     if (!songChanged) {
       if (state.isPlaying) {
         audio.play().catch(() => {});
@@ -329,88 +328,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // ── DIFFERENT SONG: stop old audio, resolve source, load, play ──
     audio.pause();
 
-    let cancelled = false;
+    const fileUrl = state.currentSong.file_url;
+    const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${API_URL}${fileUrl}`;
 
-    async function loadNewSong() {
-      if (!audio || cancelled) return;
+    audio.src = fullUrl;
+    audio.load();
+    loadedSongId.current = songId;
 
-      const isOnline = typeof navigator !== "undefined" && navigator.onLine;
-      const remoteUrl = state.currentSong!.file_url;
-
-      // Step 1: Check offline cache
-      let cachedSrc: string | null = null;
-      try {
-        cachedSrc = await getCachedAudio(songId);
-      } catch {
-        // IndexedDB not available
-      }
-      if (cancelled) return;
-
-      // Step 2: Determine source
-      const audioSrc = cachedSrc || (isOnline ? remoteUrl : null);
-
-      if (audioSrc) {
-        // Step 3: Load and play
-        audio.src = audioSrc;
-        audio.load();
-        loadedSongId.current = songId;
-
-        if (state.isPlaying) {
-          audio.play().catch(() => {});
-        }
-
-        // Step 4: Background cache if we used the remote URL
-        if (!cachedSrc && isOnline && remoteUrl) {
-          cacheAudioFile(songId, remoteUrl).catch(() => {});
-        }
-      } else {
-        // Offline and not cached — find next cached song in the queue
-        let cachedIds: string[] = [];
-        try {
-          cachedIds = await getAllCachedSongIds();
-        } catch {}
-        if (cancelled) return;
-
-        const cachedSet = new Set(cachedIds);
-        const queue = state.queue;
-        const idx = state.currentIndex;
-
-        // Search forward through queue for a cached song
-        let foundIdx = -1;
-        for (let i = 1; i < queue.length; i++) {
-          const check = (idx + i) % queue.length;
-          if (cachedSet.has(queue[check].id)) {
-            foundIdx = check;
-            break;
-          }
-        }
-
-        if (foundIdx >= 0) {
-          // Reset so the effect treats it as a new song (even if same ID)
-          loadedSongId.current = null;
-          // Jump to the next cached song (this triggers this effect again)
-          setState((prev) => ({
-            ...prev,
-            currentIndex: foundIdx,
-            currentSong: prev.queue[foundIdx],
-            isPlaying: true,
-          }));
-        } else {
-          // Nothing cached at all — stop
-          loadedSongId.current = null;
-          setState((prev) => ({ ...prev, isPlaying: false }));
-        }
-      }
+    if (state.isPlaying) {
+      audio.play().catch(() => {});
     }
-
-    loadNewSong();
-
-    return () => {
-      cancelled = true;
-    };
   }, [state.currentSong?.id, state.isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update volume
@@ -419,6 +348,73 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!audio) return;
     audio.volume = state.isMuted ? 0 : state.volume;
   }, [state.volume, state.isMuted]);
+
+  // Restore player state from backend on mount
+  const hasRestored = useRef(false);
+  useEffect(() => {
+    if (hasRestored.current) return;
+    hasRestored.current = true;
+
+    (async () => {
+      try {
+        const ps = await api.get<{ song_id: string | null; position: number; volume: number }>("/api/player/state");
+        if (ps.volume !== undefined) {
+          setState((prev) => ({ ...prev, volume: ps.volume }));
+        }
+        if (ps.song_id) {
+          const songs = await api.get<Song[]>("/api/songs");
+          const match = songs.find((s) => s.id === ps.song_id);
+          if (match) {
+            setState((prev) => ({
+              ...prev,
+              queue: songs,
+              currentSong: match,
+              currentIndex: songs.indexOf(match),
+              currentTime: ps.position || 0,
+              isPlaying: false,
+            }));
+            const audio = audioRef.current;
+            if (audio) {
+              const fileUrl = match.file_url;
+              const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${API_URL}${fileUrl}`;
+              audio.src = fullUrl;
+              audio.load();
+              loadedSongId.current = match.id;
+              audio.currentTime = ps.position || 0;
+            }
+          }
+        }
+      } catch {
+        // No saved state or not logged in yet
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save player state to backend every 30s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!state.currentSong) return;
+      api.put("/api/player/state", {
+        song_id: state.currentSong.id,
+        position: state.currentTime,
+        volume: state.volume,
+      }).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [state.currentSong, state.currentTime, state.volume]);
+
+  // Save player state on song change
+  const prevSongId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!state.currentSong) return;
+    if (state.currentSong.id === prevSongId.current) return;
+    prevSongId.current = state.currentSong.id;
+    api.put("/api/player/state", {
+      song_id: state.currentSong.id,
+      position: 0,
+      volume: state.volume,
+    }).catch(() => {});
+  }, [state.currentSong, state.volume]);
 
   // Audio event handlers
   useEffect(() => {

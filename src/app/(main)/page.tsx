@@ -2,28 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { createClient, Playlist } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { api, Playlist } from "@/lib/api";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 
 export default function HomePage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
   const { likedCount } = useLikedSongs();
-  const supabase = createClient();
   const [activeFilter, setActiveFilter] = useState("all");
 
   const fetchPlaylists = useCallback(async () => {
-    if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("playlists")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (data) setPlaylists(data);
+    try {
+      const data = await api.get<Playlist[]>("/api/playlists");
+      setPlaylists(data);
+    } catch { /* handled by api wrapper */ }
     setLoading(false);
-  }, [user, supabase]);
+  }, []);
 
   useEffect(() => { fetchPlaylists(); }, [fetchPlaylists]);
 

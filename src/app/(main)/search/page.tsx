@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient, Song } from "@/lib/supabase";
-import { useAuth } from "@/hooks/useAuth";
+import { api, Song } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { TrackRow } from "@/components/TrackRow";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
@@ -13,24 +12,18 @@ function SearchResults() {
   const query = searchParams.get("q") || "";
   const [results, setResults] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
   const { playQueue, currentSong } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
-  const supabase = createClient();
 
   const search = useCallback(async () => {
-    if (!user || !query.trim()) { setResults([]); return; }
+    if (!query.trim()) { setResults([]); return; }
     setLoading(true);
-    const term = query.trim();
-    const { data } = await supabase
-      .from("songs")
-      .select("*")
-      .or(`title.ilike.%${term}%,artist.ilike.%${term}%,album.ilike.%${term}%`)
-      .order("title")
-      .limit(50);
-    setResults(data || []);
+    try {
+      const data = await api.get<Song[]>("/api/songs?q=" + encodeURIComponent(query.trim()));
+      setResults(data);
+    } catch { setResults([]); }
     setLoading(false);
-  }, [user, query, supabase]);
+  }, [query]);
 
   useEffect(() => { search(); }, [search]);
 
