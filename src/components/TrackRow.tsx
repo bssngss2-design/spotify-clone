@@ -7,6 +7,7 @@ import { formatDuration } from "@/lib/audioUtils";
 import { usePlayer } from "@/context/PlayerContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
+import { CreditsModal } from "./CreditsModal";
 
 interface TrackRowProps {
   song: Song;
@@ -28,6 +29,8 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
   const [playlistSubOpen, setPlaylistSubOpen] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistSearch, setPlaylistSearch] = useState("");
+  const [creditsOpen, setCreditsOpen] = useState(false);
+  const [shareSubOpen, setShareSubOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const supabase = createClient();
@@ -209,6 +212,15 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                   )}
                 </div>
 
+                {/* Remove from playlist */}
+                {onDelete && (
+                  <MenuItem
+                    icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M11.25 8a.75.75 0 01-.75.75h-5a.75.75 0 010-1.5h5a.75.75 0 01.75.75z" /></svg>}
+                    label="Remove from this playlist"
+                    onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }}
+                  />
+                )}
+
                 {/* Like/Unlike */}
                 {onToggleLike && (
                   <MenuItem
@@ -229,18 +241,25 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                   onClick={(e) => { e.stopPropagation(); addToQueue(song); setMenuOpen(false); }}
                 />
 
+                {/* Exclude from taste profile */}
+                <MenuItem
+                  icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z" /></svg>}
+                  label="Exclude from your taste profile"
+                  onClick={(e) => { e.stopPropagation(); toast("Taste profile is not available yet"); setMenuOpen(false); }}
+                />
+
                 <div className="border-t border-[#3e3e3e] my-1" />
 
                 {/* Go to song radio */}
                 <MenuItem
-                  icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M8 5a3 3 0 100 6 3 3 0 000-6z" /></svg>}
+                  icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 -3 20 20"><path d="M11.4324,5.63833 C11.4094,5.61278 11.3924,5.58428 11.3674,5.55971 L11.3634,5.56265 C10.5824,4.79509 9.2434,4.86683 8.5364,5.56167 C7.8294,6.25651 7.8314,7.64423 8.5384,8.33907 C8.5474,8.34791 8.5584,8.35381 8.5674,8.36265 C8.5914,8.38722 8.6084,8.41671 8.6334,8.44128 L8.6364,8.43735 C9.4174,9.20491 10.7564,9.13415 11.4634,8.43833 C12.1704,7.74349 12.1684,6.35577 11.4614,5.66093 C11.4524,5.65209 11.4414,5.64717 11.4324,5.63833 M7.1194,4.17002 L5.7054,2.77936 C3.5844,4.86486 3.6834,9.13612 5.8044,11.22064 L7.2184,9.83096 C5.8044,8.44128 5.7054,5.55971 7.1194,4.17002 M4.2914,1.38968 L2.8774,0 C-1.3656,4.17002 -0.5596,10.5258 2.9764,14 L4.3904,12.61032 C1.5624,9.83096 1.4634,4.17002 4.2914,1.38968 M14.1954,2.77936 L12.7814,4.17002 C14.1954,5.55971 14.2944,8.44128 12.8804,9.83096 L14.2944,11.22064 C16.4154,9.13612 16.3164,4.86486 14.1954,2.77936 M17.1224,14 L15.7084,12.61032 C18.5374,9.83096 18.4384,4.17002 15.6094,1.38968 L17.0234,0 C20.5594,3.47518 21.3654,9.83096 17.1224,14" /></svg>}
                   label="Go to song radio"
-                  onClick={(e) => { e.stopPropagation(); toast("Song radio is not available yet"); setMenuOpen(false); }}
+                  onClick={(e) => { e.stopPropagation(); router.push(`/radio/${encodeURIComponent(song.title)}`); setMenuOpen(false); }}
                 />
 
                 {/* Go to artist */}
                 <MenuItem
-                  icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M11.757 2.987A4 4 0 118.243 9.01a4 4 0 013.514-6.022zM8 6a2 2 0 104 0 2 2 0 00-4 0zm-3.5 6.5a5.5 5.5 0 0111 0V14h-11v-1.5z" /></svg>}
+                  icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12,11A5,5,0,1,0,7,6,5.006,5.006,0,0,0,12,11Zm0-8A3,3,0,1,1,9,6,3,3,0,0,1,12,3ZM3,22a9,9,0,0,1,18,0,1,1,0,0,1-2,0A7,7,0,0,0,5,22a1,1,0,0,1-2,0Z" /></svg>}
                   label="Go to artist"
                   onClick={(e) => { e.stopPropagation(); if (song.artist) router.push(`/artist/${encodeURIComponent(song.artist)}`); setMenuOpen(false); }}
                 />
@@ -258,15 +277,32 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                 <MenuItem
                   icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 2.5A2.5 2.5 0 013 0h10a2.5 2.5 0 012.5 2.5v11A2.5 2.5 0 0113 16H3a2.5 2.5 0 01-2.5-2.5v-11zm2.5-1a1 1 0 00-1 1v11a1 1 0 001 1h10a1 1 0 001-1v-11a1 1 0 00-1-1H3zm1.5 3a.5.5 0 01.5-.5h6a.5.5 0 010 1H5a.5.5 0 01-.5-.5zm0 3a.5.5 0 01.5-.5h6a.5.5 0 010 1H5a.5.5 0 01-.5-.5zm0 3a.5.5 0 01.5-.5h4a.5.5 0 010 1H5a.5.5 0 01-.5-.5z" /></svg>}
                   label="View credits"
-                  onClick={(e) => { e.stopPropagation(); toast(`Credits: ${song.artist || "Unknown artist"} (Main Artist)`); setMenuOpen(false); }}
+                  onClick={(e) => { e.stopPropagation(); setCreditsOpen(true); setMenuOpen(false); }}
                 />
 
                 {/* Share */}
-                <MenuItem
-                  icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5.75A.75.75 0 011.75 5H7v1.5H2.5v8h11V7H9V5.5h4.25a.75.75 0 01.75.75v9.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-9.5z" /><path d="M8 1.293l2.854 2.853-1.061 1.061L8.5 3.914V10h-1V3.914L6.207 5.207 5.146 4.146 8 1.293z" /></svg>}
-                  label="Share"
-                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(window.location.href); toast("Link copied to clipboard"); setMenuOpen(false); }}
-                />
+                <div className="relative" onMouseEnter={() => setShareSubOpen(true)} onMouseLeave={() => setShareSubOpen(false)}>
+                  <MenuItem
+                    icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M1 5.75A.75.75 0 011.75 5H7v1.5H2.5v8h11V7H9V5.5h4.25a.75.75 0 01.75.75v9.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-9.5z" /><path d="M8 1.293l2.854 2.853-1.061 1.061L8.5 3.914V10h-1V3.914L6.207 5.207 5.146 4.146 8 1.293z" /></svg>}
+                    label="Share"
+                    sub
+                    onClick={(e) => { e.stopPropagation(); setShareSubOpen(!shareSubOpen); }}
+                  />
+                  {shareSubOpen && (
+                    <div className="absolute right-full top-0 mr-1 w-[200px] bg-[#282828] rounded-md shadow-2xl py-1 z-[70]">
+                      <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(window.location.href); toast("Link copied to clipboard"); setMenuOpen(false); setShareSubOpen(false); }}
+                        className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3 transition-colors">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.75A.75.75 0 011.75 2h6.5a.75.75 0 010 1.5H2.5v9h9V8.75a.75.75 0 011.5 0v5.5a.75.75 0 01-.75.75H1.75a.75.75 0 01-.75-.75v-11.5z" /><path d="M7 1.75A.75.75 0 017.75 1h6.5a.75.75 0 01.75.75v6.5a.75.75 0 01-1.5 0V3.56L8.28 8.78a.75.75 0 01-1.06-1.06l5.22-5.22H7.75A.75.75 0 017 1.75z" /></svg>
+                        Copy link to Song
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); toast("Embed is not available"); setMenuOpen(false); setShareSubOpen(false); }}
+                        className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3 transition-colors">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M0 8a.75.75 0 01.468-.694l3.5-1.5a.75.75 0 01.593 1.377L2.24 8l2.32.817a.75.75 0 01-.593 1.377l-3.5-1.5A.75.75 0 010 8zm12.032-.817l-2.32-.817a.75.75 0 01.593-1.377l3.5 1.5a.75.75 0 010 1.377l-3.5 1.5a.75.75 0 11-.593-1.377l2.32-.806zM7.266 1.147a.75.75 0 01.587.882l-2 9a.75.75 0 01-1.47-.326l2-9a.75.75 0 01.883-.556z" /></svg>
+                        Embed track
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <div className="border-t border-[#3e3e3e] my-1" />
 
@@ -277,22 +313,14 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
                   onClick={(e) => { e.stopPropagation(); toast("Desktop app is not available"); setMenuOpen(false); }}
                 />
 
-                {/* Remove from playlist (only if onDelete) */}
-                {onDelete && (
-                  <>
-                    <div className="border-t border-[#3e3e3e] my-1" />
-                    <MenuItem
-                      icon={<svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z" /><path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" /></svg>}
-                      label="Remove from this playlist"
-                      onClick={(e) => { e.stopPropagation(); onDelete(); setMenuOpen(false); }}
-                    />
-                  </>
-                )}
+
+
               </div>
             )}
           </div>
         </div>
       </div>
+      {creditsOpen && <CreditsModal song={song} onClose={() => setCreditsOpen(false)} />}
     </>
   );
 }

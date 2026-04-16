@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { api, Playlist } from "@/lib/api";
+import { Playlist, createClient } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/useToast";
 
 interface EditPlaylistModalProps {
   playlist: Playlist;
@@ -18,6 +19,8 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
+  const supabase = createClient();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -25,23 +28,20 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const data = await api.upload<{ url: string }>("/api/playlists/" + playlist.id + "/cover", formData);
-      if (data?.url) setPreviewUrl(data.url);
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/playlist-covers/${playlist.id}.${ext}`;
+      await supabase.storage.from("audio").upload(path, file, { upsert: true });
+      const { data: urlData } = supabase.storage.from("audio").getPublicUrl(path);
+      if (urlData?.publicUrl) setPreviewUrl(urlData.publicUrl);
     } catch {
-      // ignore
+      toast("Failed to upload cover image");
     }
     setUploading(false);
   };
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    try {
-      await api.patch("/api/playlists/" + playlist.id, { name: name.trim() });
-    } catch {
-      // ignore
-    }
+    await supabase.from("playlists").update({ name: name.trim() }).eq("id", playlist.id);
     onSave({ name: name.trim(), coverUrl: previewUrl || undefined });
     onClose();
   };
@@ -49,7 +49,6 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[90]" onClick={onClose}>
       <div className="bg-[#282828] rounded-lg w-full max-w-[524px] p-6" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white">Edit details</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors">
@@ -57,9 +56,7 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex gap-4 mb-6">
-          {/* Cover art */}
           <div className="relative w-[180px] h-[180px] flex-shrink-0 group cursor-pointer" onClick={() => fileRef.current?.click()}>
             <div className="w-full h-full bg-[#333] rounded-md flex items-center justify-center overflow-hidden">
               {previewUrl ? (
@@ -68,7 +65,6 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
                 <svg className="w-12 h-12 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 24 24"><path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" /></svg>
               )}
             </div>
-            {/* Hover overlay */}
             <div className="absolute inset-0 bg-black/60 rounded-md flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <svg className="w-12 h-12 text-white mb-2" fill="currentColor" viewBox="0 0 24 24"><path d="M17.318 2.768a2.276 2.276 0 013.182 0 2.276 2.276 0 010 3.182L9.182 17.268a1 1 0 01-.464.263l-4 1a1 1 0 01-1.213-1.213l1-4a1 1 0 01.263-.464L16.086 1.536zM16.5 4.5L5.5 15.5l-.5 2 2-.5L18 6l-1.5-1.5z" /></svg>
               <span className="text-white text-sm font-semibold">Choose photo</span>
@@ -81,7 +77,6 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
             )}
           </div>
 
-          {/* Name + Description */}
           <div className="flex-1 flex flex-col gap-3">
             <div>
               <label className="text-xs font-semibold text-[#b3b3b3] mb-1 block">Name</label>
@@ -105,9 +100,8 @@ export function EditPlaylistModal({ playlist, coverUrl, onClose, onSave }: EditP
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between">
-          <button className="flex items-center gap-2 px-4 py-2 text-sm text-white font-semibold border border-[#727272] rounded-full hover:border-white transition-colors">
+          <button onClick={() => toast("Public playlists are not available yet")} className="flex items-center gap-2 px-4 py-2 text-sm text-white font-semibold border border-[#727272] rounded-full hover:border-white transition-colors">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /></svg>
             Make public
           </button>

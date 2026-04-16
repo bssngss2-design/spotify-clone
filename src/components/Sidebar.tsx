@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Playlist, createClient } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
+import { usePlayer } from "@/context/PlayerContext";
 
 interface SidebarProps {
   playlists: Playlist[];
@@ -13,7 +14,7 @@ interface SidebarProps {
   likedCount: number;
   collapsed: boolean;
   onToggleCollapse: () => void;
-  onCreatePlaylist?: () => void;
+  onCreatePlaylist?: () => Promise<string | null>;
   onDeletePlaylist?: (id: string) => void;
   onClose?: () => void;
 }
@@ -24,20 +25,24 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
   const { user } = useAuth();
   const { toast } = useToast();
   const supabase = createClient();
+  const { addToQueue } = usePlayer();
   const [librarySearch, setLibrarySearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("playlists");
   const [sortOrder, setSortOrder] = useState<"recents" | "alphabetical">("recents");
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; playlistId: string; playlistName: string } | null>(null);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const ctxRef = useRef<HTMLDivElement>(null);
+  const createMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setCtxMenu(null);
+      if (createMenuRef.current && !createMenuRef.current.contains(e.target as Node)) setCreateMenuOpen(false);
     }
-    if (ctxMenu) document.addEventListener("mousedown", handleClick);
+    if (ctxMenu || createMenuOpen) document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [ctxMenu]);
+  }, [ctxMenu, createMenuOpen]);
 
   const handlePlaylistContextMenu = (e: React.MouseEvent, playlist: Playlist) => {
     e.preventDefault();
@@ -53,6 +58,18 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
   }, [supabase, pathname, router, onDeletePlaylist]);
 
   const handleNavClick = () => { onClose?.(); };
+
+  const queuePlaylistSongs = useCallback(async (playlistId: string) => {
+    const { data } = await supabase
+      .from("playlist_songs")
+      .select("songs(*)")
+      .eq("playlist_id", playlistId)
+      .order("position");
+    if (data) {
+      const songs = data.map((r: Record<string, unknown>) => r.songs).filter(Boolean);
+      songs.forEach((s: unknown) => addToQueue(s as import("@/lib/supabase").Song));
+    }
+  }, [supabase, addToQueue]);
 
   const sortedPlaylists = sortOrder === "alphabetical"
     ? [...playlists].sort((a, b) => a.name.localeCompare(b.name))
@@ -115,9 +132,47 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
             <span className="font-bold text-base">Your Library</span>
           </button>
           <div className="flex items-center gap-1">
-            <button onClick={onCreatePlaylist} className="h-8 px-3 flex items-center gap-1.5 text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] rounded-full transition-colors text-sm font-bold" title="Create playlist or folder">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15.25 8a.75.75 0 01-.75.75H8.75v5.75a.75.75 0 01-1.5 0V8.75H1.5a.75.75 0 010-1.5h5.75V1.5a.75.75 0 011.5 0v5.75h5.75a.75.75 0 01.75.75z" /></svg>
-            </button>
+            <div ref={createMenuRef} className="relative">
+              <button onClick={() => setCreateMenuOpen(!createMenuOpen)} className="h-8 px-3 flex items-center gap-1.5 text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] rounded-full transition-colors text-sm font-bold" title="Create playlist or folder">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15.25 8a.75.75 0 01-.75.75H8.75v5.75a.75.75 0 01-1.5 0V8.75H1.5a.75.75 0 010-1.5h5.75V1.5a.75.75 0 011.5 0v5.75h5.75a.75.75 0 01.75.75z" /></svg>
+              </button>
+              {createMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-[220px] bg-[#282828] rounded-lg shadow-2xl py-2 z-[80]">
+                  <button onClick={async () => { setCreateMenuOpen(false); const id = await onCreatePlaylist?.(); if (id) router.push(`/playlist/${id}`); }}
+                    className="w-full text-left px-3 py-3 hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                    <div className="w-10 h-10 bg-[#3e3e3e] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5V4h11.5V1.5h1.5V7H1V5.5z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Playlist</p>
+                      <p className="text-xs text-[#b3b3b3]">Create a playlist with songs or episodes</p>
+                    </div>
+                  </button>
+                  <div className="border-t border-[#3e3e3e] mx-3 my-1" />
+                  <button onClick={() => { setCreateMenuOpen(false); router.push("/blend"); }}
+                    className="w-full text-left px-3 py-3 hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                    <div className="w-10 h-10 bg-[#3e3e3e] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M8 4v4H4v1h4v4h1V9h4V8H9V4H8z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Blend</p>
+                      <p className="text-xs text-[#b3b3b3]">Combine your friends&apos; tastes into a playlist</p>
+                    </div>
+                  </button>
+                  <div className="border-t border-[#3e3e3e] mx-3 my-1" />
+                  <button onClick={() => { setCreateMenuOpen(false); toast("Folders are not available yet"); }}
+                    className="w-full text-left px-3 py-3 hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                    <div className="w-10 h-10 bg-[#3e3e3e] rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 012.5 2h3A1.5 1.5 0 017 3.5V4h5.5A1.5 1.5 0 0114 5.5v7a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9zm1.5 0V4H5V3.5H2.5zm0 2v7h9v-7h-9z" /></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Folder</p>
+                      <p className="text-xs text-[#b3b3b3]">Organize your playlists</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
             <button onClick={onToggleCollapse} className="w-8 h-8 hidden md:flex items-center justify-center text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] rounded-full transition-colors" title="Show more">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M6.53 9.47a.75.75 0 010 1.06l-2.72 2.72h1.018a.75.75 0 010 1.5H1.25v-3.579a.75.75 0 011.5 0v1.018l2.72-2.72a.75.75 0 011.06 0zm2.94-2.94a.75.75 0 010-1.06l2.72-2.72h-1.018a.75.75 0 110-1.5h3.578v3.579a.75.75 0 01-1.5 0V3.81l-2.72 2.72a.75.75 0 01-1.06 0z" /></svg>
             </button>
@@ -220,13 +275,9 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
       {/* Playlist right-click context menu */}
       {ctxMenu && (
         <div ref={ctxRef} className="fixed z-[80] w-56 bg-[#282828] rounded-md shadow-2xl py-1" style={{ left: ctxMenu.x, top: ctxMenu.y }}>
-          <button onClick={() => { toast("Added playlist to queue"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
+          <button onClick={async () => { await queuePlaylistSongs(ctxMenu.playlistId); toast("Added to queue"); setCtxMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5V4h11.5V1.5h1.5V7H1V5.5z" /></svg>
             Add to queue
-          </button>
-          <button onClick={() => { setCtxMenu(null); router.push(`/playlist/${ctxMenu.playlistId}`); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M13.426 2.574a2.831 2.831 0 00-4.797 1.55l3.247 3.247a2.831 2.831 0 001.55-4.797zM10.5 8.118l-2.619-2.62A63.088 63.088 0 011.348 9.65.5.5 0 001 10.104v3.396a.5.5 0 00.5.5h3.396a.5.5 0 00.454-.348 63.088 63.088 0 014.15-5.534z" /></svg>
-            Edit details
           </button>
           <button onClick={() => { if (confirm(`Delete "${ctxMenu.playlistName}"?`)) deletePlaylist(ctxMenu.playlistId); }} className="w-full text-left px-3 py-2 text-sm text-[#eaeaea] hover:bg-[#3e3e3e] hover:text-white flex items-center gap-3">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM0 8a8 8 0 1116 0A8 8 0 010 8z" /><path d="M11.25 8a.75.75 0 01-.75.75h-5a.75.75 0 010-1.5h5a.75.75 0 01.75.75z" /></svg>

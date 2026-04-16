@@ -55,16 +55,17 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   useEffect(() => { fetchPlaylists(); }, [fetchPlaylists]);
 
-  const handleCreatePlaylist = async () => {
-    if (!user) return;
+  const handleCreatePlaylist = async (): Promise<string | null> => {
+    if (!user) return null;
     const playlistNumber = playlists.length + 1;
     const { data, error } = await supabase
       .from("playlists")
       .insert({ user_id: user.id, name: `My Playlist #${playlistNumber}` })
       .select()
       .single();
-    if (error) { alert("Failed to create playlist: " + error.message); return; }
-    if (data) setPlaylists((prev) => [data, ...prev]);
+    if (error) { alert("Failed to create playlist: " + error.message); return null; }
+    if (data) { setPlaylists((prev) => [data, ...prev]); return data.id; }
+    return null;
   };
 
   const handleDeletePlaylist = useCallback((id: string) => {
