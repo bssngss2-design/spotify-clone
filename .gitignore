@@ -5,6 +5,9 @@ node_modules
 
 # Testing
 coverage
+test-results/
+playwright-report/
+.playwright-browsers/
 
 # Next.js
 .next/
@@ -41,3 +44,15 @@ public/sw.js
 public/workbox-*.js
 public/sw.js.map
 public/workbox-*.js.map
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Backend runtime artifacts
+backend/uploads/
+backend/spotify.db
+/spotify.db

@@ -1,6 +1,6 @@
 "use client";
 
-import { Song } from "@/lib/supabase";
+import { Song } from "@/lib/types";
 import { useToast } from "@/hooks/useToast";
 
 interface CreditsModalProps {

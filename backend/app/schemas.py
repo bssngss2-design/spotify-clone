@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional
 from datetime import datetime
 
@@ -12,11 +12,11 @@ class UserLogin(BaseModel):
     password: str
 
 class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     email: str
     created_at: datetime
-    class Config:
-        from_attributes = True
 
 class TokenOut(BaseModel):
     access_token: str
@@ -24,43 +24,45 @@ class TokenOut(BaseModel):
     user: UserOut
 
 class SongOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     title: str
     artist: Optional[str] = None
     album: Optional[str] = None
+    genre: Optional[str] = None
     duration: int
     file_url: str
     cover_url: Optional[str] = None
     created_at: datetime
-    class Config:
-        from_attributes = True
 
 class PlaylistOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     name: str
+    category: Optional[str] = None
     created_at: datetime
-    class Config:
-        from_attributes = True
 
 class PlaylistSongOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     playlist_id: str
     song_id: str
     position: int
     song: Optional[SongOut] = None
-    class Config:
-        from_attributes = True
 
 class PlaylistDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     name: str
     created_at: datetime
     songs: list[PlaylistSongOut] = []
-    class Config:
-        from_attributes = True
 
 class PlaylistCreate(BaseModel):
     name: str
@@ -73,20 +75,20 @@ class PlaylistSongAdd(BaseModel):
     position: Optional[int] = None
 
 class LikedSongOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: str
     song_id: str
     created_at: datetime
     song: Optional[SongOut] = None
-    class Config:
-        from_attributes = True
 
 class PlayerStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     song_id: Optional[str] = None
     position: float = 0
     volume: float = 1
-    class Config:
-        from_attributes = True
 
 class PlayerStateUpdate(BaseModel):
     song_id: Optional[str] = None

@@ -426,7 +426,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
 
     const handleLoadedMetadata = () => {
-      setState((prev) => ({ ...prev, duration: audio.duration }));
+      setState((prev) => {
+        const ad = audio.duration;
+        const meta = prev.currentSong?.duration ?? 0;
+        const duration =
+          Number.isFinite(ad) && ad > 0 ? ad : meta > 0 ? meta : 0;
+        return { ...prev, duration };
+      });
     };
 
     const handleEnded = () => {

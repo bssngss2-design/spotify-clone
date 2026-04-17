@@ -98,4 +98,4 @@ export const api = {
   clearToken,
 };
 
-export type { Song, Playlist, PlaylistSong, LikedSong } from "./supabase";
+export type { Song, Playlist, PlaylistSong, LikedSong, HomeDiscover } from "./types";

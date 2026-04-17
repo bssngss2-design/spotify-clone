@@ -31,4 +31,4 @@ def test_me(authed_client, test_user):
 
 def test_me_no_token(client):
     r = client.get("/api/auth/me")
-    assert r.status_code == 403
+    assert r.status_code == 401

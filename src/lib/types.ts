@@ -4,6 +4,7 @@ export interface Song {
   title: string;
   artist: string | null;
   album: string | null;
+  genre?: string | null;
   duration: number;
   file_url: string;
   cover_url: string | null;
@@ -14,7 +15,15 @@ export interface Playlist {
   id: string;
   user_id: string;
   name: string;
+  category?: string | null;
   created_at: string;
+}
+
+export interface HomeDiscover {
+  made_for_you: Playlist[];
+  new_releases: Playlist[];
+  popular_artists: Playlist[];
+  recently_played: Song[];
 }
 
 export interface PlaylistSong {

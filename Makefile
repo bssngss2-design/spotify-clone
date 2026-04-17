@@ -11,6 +11,7 @@ down:
 
 seed:
 	docker-compose run --rm backend python seed.py
+# Local: cd backend && ./venv/bin/python seed.py  (re-seed: SEED_FORCE=1 ./venv/bin/python seed.py)
 
 test:
 	docker-compose run --rm backend pytest

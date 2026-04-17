@@ -2,6 +2,7 @@ import os
 import uuid
 from fastapi import APIRouter, Depends, UploadFile, File, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from ..deps import get_db, get_current_user
 from ..models import User, Song
 from ..schemas import SongOut
@@ -14,6 +15,7 @@ UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__fil
 @router.get("", response_model=list[SongOut])
 def list_songs(
     q: str = Query(default=""),
+    genre: str = Query(default=""),
     artist: str = Query(default=""),
     album: str = Query(default=""),
     user: User = Depends(get_current_user),
@@ -23,13 +25,20 @@ def list_songs(
     if q:
         term = f"%{q}%"
         query = query.filter(
-            (Song.title.ilike(term)) | (Song.artist.ilike(term)) | (Song.album.ilike(term))
+            or_(
+                Song.title.ilike(term),
+                Song.artist.ilike(term),
+                Song.album.ilike(term),
+                Song.genre.ilike(term),
+            )
         )
+    if genre:
+        query = query.filter(Song.genre.ilike(genre.strip()))
     if artist:
         query = query.filter(Song.artist.ilike(artist))
     if album:
         query = query.filter(Song.album.ilike(album))
-    songs = query.order_by(Song.title).limit(50).all()
+    songs = query.order_by(Song.title).limit(200).all()
     return [SongOut.model_validate(s) for s in songs]
 
 

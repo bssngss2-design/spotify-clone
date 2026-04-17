@@ -2,50 +2,93 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { api, Song } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { TrackRow } from "@/components/TrackRow";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { BROWSE_TILES } from "@/lib/browseCategories";
 
 function SearchResults() {
   const searchParams = useSearchParams();
-  const query = searchParams.get("q") || "";
+  const q = searchParams.get("q") || "";
+  const genre = searchParams.get("genre") || "";
   const [results, setResults] = useState<Song[]>([]);
   const [loading, setLoading] = useState(false);
   const { playQueue, currentSong } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
 
   const search = useCallback(async () => {
-    if (!query.trim()) { setResults([]); return; }
+    if (!q.trim() && !genre.trim()) {
+      setResults([]);
+      return;
+    }
     setLoading(true);
     try {
-      const data = await api.get<Song[]>("/api/songs?q=" + encodeURIComponent(query.trim()));
+      const params = new URLSearchParams();
+      if (q.trim()) params.set("q", q.trim());
+      if (genre.trim()) params.set("genre", genre.trim());
+      const data = await api.get<Song[]>(`/api/songs?${params.toString()}`);
       setResults(data);
-    } catch { setResults([]); }
+    } catch {
+      setResults([]);
+    }
     setLoading(false);
-  }, [query]);
+  }, [q, genre]);
 
-  useEffect(() => { search(); }, [search]);
+  useEffect(() => {
+    search();
+  }, [search]);
+
+  const showBrowse = !q.trim() && !genre.trim();
 
   return (
     <div className="p-6">
-      {!query ? (
-        <div className="text-center py-20">
-          <h2 className="text-2xl font-bold text-white mb-2">Search your library</h2>
-          <p className="text-foreground-subdued">Find songs, artists, and albums.</p>
+      {showBrowse && (
+        <section className="mb-10">
+          <h2 className="text-2xl font-bold text-white mb-2">Browse all</h2>
+          <p className="text-foreground-subdued text-sm mb-6">Pick a genre — same library as SS1 + SS2.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+            {BROWSE_TILES.map((tile) => (
+              <Link
+                key={tile.key}
+                href={`/search?genre=${encodeURIComponent(tile.key)}`}
+                className={`relative overflow-hidden rounded-lg min-h-[88px] md:min-h-[100px] p-3 md:p-4 flex flex-col justify-between ${tile.className} hover:scale-[1.02] transition-transform shadow-lg`}
+              >
+                <span className="text-white font-bold text-sm md:text-base leading-tight z-10 drop-shadow-md">
+                  {tile.label}
+                </span>
+                <div className="absolute bottom-2 right-2 w-14 h-14 md:w-16 md:h-16 rounded-md bg-black/20 rotate-[20deg] shadow-md" aria-hidden />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showBrowse && (
+        <div className="text-center py-8 border-t border-border">
+          <h3 className="text-lg font-semibold text-white mb-1">Search your library</h3>
+          <p className="text-foreground-subdued text-sm">Find songs, artists, albums — or tap a tile above.</p>
         </div>
-      ) : loading ? (
+      )}
+
+      {!showBrowse && loading ? (
         <div className="flex justify-center py-12">
           <div className="w-8 h-8 border-2 border-foreground-subdued border-t-white rounded-full animate-spin" />
         </div>
-      ) : results.length === 0 ? (
+      ) : !showBrowse && results.length === 0 ? (
         <div className="text-center py-20">
-          <h2 className="text-xl font-bold text-white mb-2">No results found for &ldquo;{query}&rdquo;</h2>
-          <p className="text-foreground-subdued">Check your spelling or try different keywords.</p>
+          <h2 className="text-xl font-bold text-white mb-2">
+            No results{q ? ` for “${q}”` : ""}
+            {genre ? ` in ${genre}` : ""}
+          </h2>
+          <p className="text-foreground-subdued">Check your spelling or try another genre.</p>
         </div>
-      ) : (
+      ) : !showBrowse ? (
         <>
-          <h2 className="text-2xl font-bold text-white mb-4">Results for &ldquo;{query}&rdquo;</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">
+            {genre && !q ? `Genre: ${genre}` : q ? `Results for “${q}”` : "Results"}
+          </h2>
           <div className="hidden md:grid grid-cols-[16px_4fr_minmax(120px,1fr)_40px] gap-4 px-4 py-2 border-b border-border text-foreground-subdued text-xs uppercase tracking-wider">
             <div className="flex items-center justify-center">#</div>
             <div>Title</div>
@@ -71,14 +114,20 @@ function SearchResults() {
             ))}
           </div>
         </>
-      )}
+      ) : null}
     </div>
   );
 }
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-foreground-subdued border-t-white rounded-full animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-12">
+          <div className="w-8 h-8 border-2 border-foreground-subdued border-t-white rounded-full animate-spin" />
+        </div>
+      }
+    >
       <SearchResults />
     </Suspense>
   );

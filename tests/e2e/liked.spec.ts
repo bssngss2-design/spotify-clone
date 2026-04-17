@@ -1,18 +1,11 @@
-import { test, expect, Page } from "@playwright/test";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', "demo@spotify.com");
-  await page.fill('input[type="password"]', "demo123");
-  await page.click('button[type="submit"]');
-  await page.waitForURL("/", { timeout: 10000 });
-}
+import { test, expect } from "@playwright/test";
+import { login, visible } from "./helpers";
 
 test.describe("Liked Songs", () => {
   test("page loads", async ({ page }) => {
     await login(page);
     await page.goto("/liked");
-    await expect(page.locator("h1:has-text('Liked Songs')")).toBeVisible({ timeout: 10000 });
+    await expect(visible(page, "h1:has-text('Liked Songs')")).toBeVisible({ timeout: 15000 });
   });
 
   test("shows liked songs", async ({ page }) => {
@@ -27,6 +20,6 @@ test.describe("Liked Songs", () => {
   test("download button is visible", async ({ page }) => {
     await login(page);
     await page.goto("/liked");
-    await expect(page.locator('button[title="Download"]')).toBeVisible({ timeout: 10000 });
+    await expect(visible(page, 'button[title="Download"]')).toBeVisible({ timeout: 15000 });
   });
 });

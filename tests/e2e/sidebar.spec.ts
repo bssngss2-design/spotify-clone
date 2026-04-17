@@ -1,42 +1,34 @@
-import { test, expect, Page } from "@playwright/test";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.fill('input[type="email"]', "demo@spotify.com");
-  await page.fill('input[type="password"]', "demo123");
-  await page.click('button[type="submit"]');
-  await page.waitForURL("/", { timeout: 10000 });
-}
+import { test, expect } from "@playwright/test";
+import { login, visible } from "./helpers";
 
 test.describe("Sidebar", () => {
   test("sidebar shows Your Library", async ({ page }) => {
     await login(page);
-    await expect(page.locator("text=Your Library")).toBeVisible();
+    await expect(visible(page, "text=Your Library")).toBeVisible();
   });
 
   test("sidebar shows Liked Songs", async ({ page }) => {
     await login(page);
-    await expect(page.locator("text=Liked Songs").first()).toBeVisible();
+    await expect(visible(page, "text=Liked Songs")).toBeVisible();
   });
 
   test("right-click on playlist shows context menu", async ({ page }) => {
     await login(page);
-    const playlistLink = page.locator('a[href^="/playlist/"]').first();
-    if (await playlistLink.isVisible()) {
+    const playlistLink = visible(page, 'a[href^="/playlist/"]');
+    if (await playlistLink.count()) {
       await playlistLink.click({ button: "right" });
-      await expect(page.locator("text=Add to queue")).toBeVisible({ timeout: 5000 });
-      await expect(page.locator("text=Delete")).toBeVisible();
+      await expect(visible(page, "text=Add to queue")).toBeVisible({ timeout: 5000 });
+      await expect(visible(page, "text=Delete")).toBeVisible();
     }
   });
 
   test("collapse and expand sidebar", async ({ page }) => {
     await login(page);
-    const collapseBtn = page.locator('button[title="Show more"]');
-    if (await collapseBtn.isVisible()) {
+    const collapseBtn = visible(page, 'button[title="Show more"]');
+    if (await collapseBtn.count()) {
       await collapseBtn.click();
       await page.waitForTimeout(500);
-      const expandBtn = page.locator('button[title="Expand Your Library"]');
-      await expect(expandBtn).toBeVisible({ timeout: 3000 });
+      await expect(visible(page, 'button[title="Expand Your Library"]')).toBeVisible({ timeout: 3000 });
     }
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Song } from "@/lib/supabase";
+import { Song } from "@/lib/types";
 import { TrackRow } from "./TrackRow";
 import { usePlayer } from "@/context/PlayerContext";
 

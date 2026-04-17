@@ -43,6 +43,7 @@ class Song(Base):
     title = Column(Text, nullable=False)
     artist = Column(Text)
     album = Column(Text)
+    genre = Column(Text, nullable=True, index=True)
     duration = Column(Integer, nullable=False, default=0)
     file_url = Column(Text, nullable=False)
     cover_url = Column(Text)
@@ -56,6 +57,7 @@ class Playlist(Base):
     id = Column(GUID, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(GUID, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(Text, nullable=False)
+    category = Column(String(32), nullable=True, index=True)
     created_at = Column(DateTime, default=utcnow)
 
     user = relationship("User", back_populates="playlists")
