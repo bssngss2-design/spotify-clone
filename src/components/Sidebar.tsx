@@ -27,21 +27,44 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
   const { addToQueue } = usePlayer();
   const [librarySearch, setLibrarySearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("playlists");
-  const [sortOrder, setSortOrder] = useState<"recents" | "alphabetical">("recents");
+  const [activeFilter, setActiveFilter] = useState<"playlists" | "artists" | "podcasts">("playlists");
+  type SortOrder = "recents" | "recently_added" | "alphabetical";
+  const [sortOrder, setSortOrder] = useState<SortOrder>("recents");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [recentOpens, setRecentOpens] = useState<Record<string, number>>({});
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; playlistId: string; playlistName: string } | null>(null);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const ctxRef = useRef<HTMLDivElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  // Load recent-open timestamps (per user) from localStorage once on mount.
+  useEffect(() => {
+    if (!user?.id) return;
+    try {
+      const raw = localStorage.getItem(`library_recents_${user.id}`);
+      if (raw) setRecentOpens(JSON.parse(raw));
+    } catch { /* corrupt JSON — ignore */ }
+  }, [user?.id]);
+
+  const recordOpen = useCallback((playlistId: string) => {
+    if (!user?.id) return;
+    setRecentOpens((prev) => {
+      const next = { ...prev, [playlistId]: Date.now() };
+      try { localStorage.setItem(`library_recents_${user.id}`, JSON.stringify(next)); } catch { /* quota */ }
+      return next;
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setCtxMenu(null);
       if (createMenuRef.current && !createMenuRef.current.contains(e.target as Node)) setCreateMenuOpen(false);
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setSortMenuOpen(false);
     }
-    if (ctxMenu || createMenuOpen) document.addEventListener("mousedown", handleClick);
+    if (ctxMenu || createMenuOpen || sortMenuOpen) document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [ctxMenu, createMenuOpen]);
+  }, [ctxMenu, createMenuOpen, sortMenuOpen]);
 
   const handlePlaylistContextMenu = (e: React.MouseEvent, playlist: Playlist) => {
     e.preventDefault();
@@ -56,7 +79,10 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
     onDeletePlaylist?.(id);
   }, [pathname, router, onDeletePlaylist]);
 
-  const handleNavClick = () => { onClose?.(); };
+  const handleNavClick = (playlistId?: string) => {
+    if (playlistId) recordOpen(playlistId);
+    onClose?.();
+  };
 
   const queuePlaylistSongs = useCallback(async (playlistId: string) => {
     try {
@@ -68,13 +94,43 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
     }
   }, [addToQueue]);
 
-  const sortedPlaylists = sortOrder === "alphabetical"
-    ? [...playlists].sort((a, b) => a.name.localeCompare(b.name))
-    : playlists;
+  const filterByCategory = (list: Playlist[]): Playlist[] => {
+    if (activeFilter === "artists") return list.filter((p) => p.category === "popular_artist");
+    if (activeFilter === "podcasts") return [];
+    return list;
+  };
 
+  const applySort = (list: Playlist[]): Playlist[] => {
+    if (sortOrder === "alphabetical") {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sortOrder === "recently_added") {
+      return [...list].sort((a, b) => {
+        const ta = a.created_at ? Date.parse(a.created_at) : 0;
+        const tb = b.created_at ? Date.parse(b.created_at) : 0;
+        return tb - ta;
+      });
+    }
+    // recents: sort by last-opened timestamp desc; never-opened go last in API order
+    return [...list].sort((a, b) => {
+      const ta = recentOpens[a.id] ?? 0;
+      const tb = recentOpens[b.id] ?? 0;
+      if (tb !== ta) return tb - ta;
+      return list.indexOf(a) - list.indexOf(b);
+    });
+  };
+
+  const filteredByCategory = filterByCategory(playlists);
+  const sortedPlaylists = applySort(filteredByCategory);
   const filteredPlaylists = librarySearch
     ? sortedPlaylists.filter((p) => p.name.toLowerCase().includes(librarySearch.toLowerCase()))
     : sortedPlaylists;
+
+  const sortLabels: Record<SortOrder, string> = {
+    recents: "Recents",
+    recently_added: "Recently Added",
+    alphabetical: "Alphabetical",
+  };
 
   if (collapsed) {
     return (
@@ -89,16 +145,16 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-1.5 pb-2 space-y-1">
-            <Link href="/liked" onClick={handleNavClick} className={`block ${pathname === "/liked" ? "ring-2 ring-white rounded" : ""}`} title="Liked Songs">
+            <Link href="/liked" onClick={() => handleNavClick()} className={`block ${pathname === "/liked" ? "ring-2 ring-white rounded" : ""}`} title="Liked Songs">
               <div className="w-12 h-12 mx-auto rounded bg-gradient-to-br from-[#450af5] to-[#c4efd9] flex items-center justify-center">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M15.724 4.22A4.313 4.313 0 0012.192.814a4.269 4.269 0 00-3.622 1.13.837.837 0 01-1.14 0 4.272 4.272 0 00-6.38 5.57l5.593 7.434a1.12 1.12 0 001.733-.074l.033-.044 5.315-7.315z" /></svg>
               </div>
             </Link>
             {playlists.map((playlist) => (
-              <Link key={playlist.id} href={`/playlist/${playlist.id}`} onClick={handleNavClick} className={`block ${pathname === `/playlist/${playlist.id}` ? "ring-2 ring-white rounded" : ""}`} title={playlist.name}>
+              <Link key={playlist.id} href={`/playlist/${playlist.id}`} onClick={() => handleNavClick(playlist.id)} className={`block ${pathname === `/playlist/${playlist.id}` ? "ring-2 ring-white rounded" : ""}`} title={playlist.name}>
                 <div className="w-12 h-12 mx-auto bg-[#282828] rounded flex items-center justify-center overflow-hidden">
-                  {playlistCovers[playlist.id] ? (
-                    <img src={playlistCovers[playlist.id]!} alt={playlist.name} className="w-full h-full object-cover rounded" />
+                  {(playlistCovers[playlist.id] ?? playlist.cover_url) ? (
+                    <img src={(playlistCovers[playlist.id] ?? playlist.cover_url)!} alt={playlist.name} loading="eager" className="w-full h-full object-cover rounded" />
                   ) : (
                     <svg className="w-5 h-5 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 24 24"><path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" /></svg>
                   )}
@@ -213,16 +269,43 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
               </button>
             )}
           </div>
-          <button onClick={() => setSortOrder((p) => p === "recents" ? "alphabetical" : "recents")} className="flex items-center gap-1 text-[#b3b3b3] hover:text-white transition-colors">
-            <span className="text-xs font-medium">{sortOrder === "recents" ? "Recents" : "A-Z"}</span>
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15 14.5H5V13h10v1.5zm0-5.75H5v-1.5h10v1.5zM15 3H5V1.5h10V3zM3 3H1V1.5h2V3zm0 5.75H1v-1.5h2v1.5zM3 14.5H1V13h2v1.5z" /></svg>
-          </button>
+          <div ref={sortMenuRef} className="relative">
+            <button onClick={() => setSortMenuOpen((v) => !v)} className="flex items-center gap-1 text-[#b3b3b3] hover:text-white transition-colors">
+              <span className="text-xs font-medium">{sortLabels[sortOrder]}</span>
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15 14.5H5V13h10v1.5zm0-5.75H5v-1.5h10v1.5zM15 3H5V1.5h10V3zM3 3H1V1.5h2V3zm0 5.75H1v-1.5h2v1.5zM3 14.5H1V13h2v1.5z" /></svg>
+            </button>
+            {sortMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-[#282828] rounded-md shadow-2xl py-2 z-50 ring-1 ring-white/5">
+                <p className="px-3 pb-2 text-xs text-[#b3b3b3] uppercase tracking-wider">Sort by</p>
+                {(Object.keys(sortLabels) as SortOrder[]).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => { setSortOrder(key); setSortMenuOpen(false); }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-[#3e3e3e] transition-colors flex items-center justify-between ${sortOrder === key ? "text-spotify-green" : "text-white"}`}
+                  >
+                    <span>{sortLabels[key]}</span>
+                    {sortOrder === key && (
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M13.985 2.383L5.127 12.754 1.388 8.375a.75.75 0 00-1.14.976l4.314 5.053a.75.75 0 001.139 0l9.429-11.03a.75.75 0 00-1.145-.99z" /></svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Playlist list */}
         <div className="flex-1 overflow-y-auto px-2 pb-2">
-          {/* Liked Songs */}
-          <Link href="/liked" onClick={handleNavClick}
+          {activeFilter === "podcasts" ? (
+            <div className="p-4 mt-4 bg-[#1a1a1a] rounded-lg">
+              <p className="font-semibold text-white text-sm mb-1">You don&apos;t follow any podcasts yet</p>
+              <p className="text-xs text-[#b3b3b3]">Browse podcasts to find something you love.</p>
+            </div>
+          ) : (
+          <>
+          {/* Liked Songs (hidden in Artists tab since it isn't an artist) */}
+          {activeFilter !== "artists" && (
+          <Link href="/liked" onClick={() => handleNavClick()}
             className={`flex items-center gap-3 p-2 rounded-md transition-colors ${pathname === "/liked" ? "bg-[#1a1a1a]" : "hover:bg-[#1a1a1a]"}`}>
             <div className="w-12 h-12 rounded bg-gradient-to-br from-[#450af5] to-[#c4efd9] flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M15.724 4.22A4.313 4.313 0 0012.192.814a4.269 4.269 0 00-3.622 1.13.837.837 0 01-1.14 0 4.272 4.272 0 00-6.38 5.57l5.593 7.434a1.12 1.12 0 001.733-.074l.033-.044 5.315-7.315z" /></svg>
@@ -237,6 +320,7 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
               </div>
             </div>
           </Link>
+          )}
 
           {/* User playlists */}
           {filteredPlaylists.length === 0 && playlists.length === 0 ? (
@@ -245,26 +329,37 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
               <p className="text-xs text-[#b3b3b3] mb-4">It&apos;s easy, we&apos;ll help you</p>
               <button onClick={onCreatePlaylist} className="px-4 py-1.5 bg-white text-black text-xs font-bold rounded-full hover:scale-105 transition-transform">Create playlist</button>
             </div>
+          ) : filteredPlaylists.length === 0 && activeFilter === "artists" ? (
+            <div className="p-4 mt-4 bg-[#1a1a1a] rounded-lg">
+              <p className="font-semibold text-white text-sm mb-1">You don&apos;t follow any artists yet</p>
+              <p className="text-xs text-[#b3b3b3]">Follow artists to see them here.</p>
+            </div>
+          ) : filteredPlaylists.length === 0 && librarySearch ? (
+            <div className="p-4 mt-2 text-xs text-[#b3b3b3]">
+              No results for &ldquo;{librarySearch}&rdquo;.
+            </div>
           ) : (
             <div className="space-y-0.5 mt-0.5">
               {filteredPlaylists.map((playlist) => (
-                <Link key={playlist.id} href={`/playlist/${playlist.id}`} onClick={handleNavClick}
+                <Link key={playlist.id} href={`/playlist/${playlist.id}`} onClick={() => handleNavClick(playlist.id)}
                   onContextMenu={(e) => handlePlaylistContextMenu(e, playlist)}
                   className={`flex items-center gap-3 p-2 rounded-md transition-colors ${pathname === `/playlist/${playlist.id}` ? "bg-[#1a1a1a]" : "hover:bg-[#1a1a1a]"}`}>
-                  <div className="w-12 h-12 bg-[#282828] rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {playlistCovers[playlist.id] ? (
-                      <img src={playlistCovers[playlist.id]!} alt={playlist.name} className="w-full h-full object-cover rounded" />
+                  <div className={`w-12 h-12 bg-[#282828] flex items-center justify-center flex-shrink-0 overflow-hidden ${activeFilter === "artists" ? "rounded-full" : "rounded"}`}>
+                    {(playlistCovers[playlist.id] ?? playlist.cover_url) ? (
+                      <img src={(playlistCovers[playlist.id] ?? playlist.cover_url)!} alt={playlist.name} loading="eager" className={`w-full h-full object-cover ${activeFilter === "artists" ? "rounded-full" : "rounded"}`} />
                     ) : (
                       <svg className="w-5 h-5 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 24 24"><path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" /></svg>
                     )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-white text-sm font-medium truncate">{playlist.name}</p>
-                    <p className="text-xs text-[#b3b3b3]">Playlist · B</p>
+                    <p className="text-xs text-[#b3b3b3]">{activeFilter === "artists" ? "Artist" : "Playlist"} · B</p>
                   </div>
                 </Link>
               ))}
             </div>
+          )}
+          </>
           )}
         </div>
       </div>

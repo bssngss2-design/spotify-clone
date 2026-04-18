@@ -71,7 +71,7 @@ JWT_SECRET=change-me
 - **Playlists:** Create, rename, delete, reorder, add/remove songs, cover upload.
 - **Liked Songs:** Heart toggle, Liked Songs page.
 - **Discover:** Home sections — Made for you, New releases, Popular artists, Recently played.
-- **Browse:** 29-genre grid on Search (Pop, Hip-Hop, Rock, Latin, Jazz, Ambient, K-Pop, Podcasts, Workout, Focus, Sleep, …).
+- **Browse:** Two-level flow. Search page shows a 29-genre + 6-category tile grid. Tiles open a genre landing (`/browse/[key]`) with `Popular Playlists`, `New Releases`, `Hits`, `For every mood`, and `Popular Artists` sections. Themed playlist cards drill into `/browse/[key]/[slug]` (e.g. Hot Country, 90s Country, Late Night Country); album and artist cards reuse `/album/[name]` and `/artist/[name]`.
 - **Lyrics:** `/api/lyrics/{song_id}` endpoint.
 - **YouTube import:** `/api/youtube/search` + `/api/youtube/download` via `yt-dlp` + `ffmpeg`.
 - **UI fidelity:** Pixel-matched Spotify right-click menus, modals, credits, radio, blend, artist/album pages, toasts, context menus, editing flows.
@@ -132,7 +132,8 @@ spotify/
 │   ├── lib/
 │   │   ├── api.ts                # fetch wrapper + JWT cookie sync
 │   │   ├── types.ts              # shared Song/Playlist/HomeDiscover types
-│   │   └── browseCategories.ts   # search page browse tiles
+│   │   ├── browseCategories.ts   # search page browse tiles (genres + categories)
+│   │   └── genreLanding.ts       # sections + sub-playlist slugs for /browse/[key]
 │   └── proxy.ts                  # Next middleware (auth redirect, skips /api + /uploads)
 ├── tests/e2e/                    # Playwright specs
 ├── docker-compose.yml · Dockerfile · backend/Dockerfile

@@ -16,6 +16,7 @@ export interface Playlist {
   user_id: string;
   name: string;
   category?: string | null;
+  cover_url?: string | null;
   created_at: string;
 }
 

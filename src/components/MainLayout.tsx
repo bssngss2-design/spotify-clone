@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { Player } from "./Player";
-import { PlayerProvider } from "@/context/PlayerContext";
+import { PlayerProvider, usePlayer } from "@/context/PlayerContext";
 import { NowPlayingPanel } from "./NowPlayingPanel";
 import { QueuePanel } from "./QueuePanel";
 import { LyricsPanel } from "./LyricsPanel";
@@ -13,7 +13,37 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
 import { ToastProvider } from "@/hooks/useToast";
 
-type RightPanel = "none" | "now-playing" | "queue" | "lyrics";
+type RightPanel = "now-playing" | "queue" | "lyrics";
+
+function CollapsedNowPlayingBar({ onExpand }: { onExpand: () => void }) {
+  const { currentSong } = usePlayer();
+  return (
+    <aside className="w-14 h-full bg-[#121212] rounded-lg m-2 ml-0 flex flex-col items-center py-3 gap-3 flex-shrink-0">
+      <button
+        onClick={onExpand}
+        className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors"
+        title="Show Now Playing view"
+      >
+        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="2.75" width="14" height="10.5" rx="1" />
+          <line x1="5.25" y1="3" x2="5.25" y2="13" />
+          <path d="M11.5 6L9.5 8L11.5 10" />
+        </svg>
+      </button>
+      {currentSong?.cover_url ? (
+        <button
+          onClick={onExpand}
+          title={currentSong.title}
+          className="w-10 h-10 rounded overflow-hidden bg-[#282828] hover:scale-105 transition-transform"
+        >
+          <img src={currentSong.cover_url} alt={currentSong.title} className="w-full h-full object-cover" />
+        </button>
+      ) : (
+        <div className="w-10 h-10 rounded bg-[#282828]" />
+      )}
+    </aside>
+  );
+}
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -23,9 +53,22 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [rightPanel, setRightPanel] = useState<RightPanel>("none");
+  const [rightPanel, setRightPanel] = useState<RightPanel>("now-playing");
+  const [nowPlayingCollapsed, setNowPlayingCollapsed] = useState(false);
   const { user, loading } = useAuth();
   const { likedCount } = useLikedSongs();
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("now_playing_collapsed");
+      if (saved === "1") setNowPlayingCollapsed(true);
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggleNowPlayingCollapsed = useCallback((next: boolean) => {
+    setNowPlayingCollapsed(next);
+    try { localStorage.setItem("now_playing_collapsed", next ? "1" : "0"); } catch { /* ignore */ }
+  }, []);
 
   const [playlistCovers, setPlaylistCovers] = useState<Record<string, string | null>>({});
 
@@ -63,7 +106,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, []);
 
   const togglePanel = (panel: RightPanel) => {
-    setRightPanel((prev) => (prev === panel ? "none" : panel));
+    setRightPanel((prev) => (prev === panel ? "now-playing" : panel));
   };
 
   return (
@@ -106,27 +149,34 @@ export function MainLayout({ children }: MainLayoutProps) {
             {children}
           </main>
 
-          {/* Right panels */}
-          {rightPanel === "now-playing" && (
+          {/* Right panels: Now Playing is always present (expanded or collapsed); Queue/Lyrics replace it */}
+          {rightPanel === "now-playing" && !nowPlayingCollapsed && (
             <div className="hidden md:block flex-shrink-0">
-              <NowPlayingPanel onClose={() => setRightPanel("none")} onToggleQueue={() => togglePanel("queue")} />
+              <NowPlayingPanel
+                onCollapse={() => toggleNowPlayingCollapsed(true)}
+                onToggleQueue={() => togglePanel("queue")}
+              />
+            </div>
+          )}
+          {rightPanel === "now-playing" && nowPlayingCollapsed && (
+            <div className="hidden md:block flex-shrink-0">
+              <CollapsedNowPlayingBar onExpand={() => toggleNowPlayingCollapsed(false)} />
             </div>
           )}
           {rightPanel === "queue" && (
             <div className="hidden md:block flex-shrink-0">
-              <QueuePanel onClose={() => setRightPanel("none")} />
+              <QueuePanel onClose={() => setRightPanel("now-playing")} />
             </div>
           )}
           {rightPanel === "lyrics" && (
             <div className="hidden md:block flex-shrink-0">
-              <LyricsPanel onClose={() => setRightPanel("none")} />
+              <LyricsPanel onClose={() => setRightPanel("now-playing")} />
             </div>
           )}
         </div>
 
         <Player
           activePanel={rightPanel}
-          onToggleNowPlaying={() => togglePanel("now-playing")}
           onToggleQueue={() => togglePanel("queue")}
           onToggleLyrics={() => togglePanel("lyrics")}
         />

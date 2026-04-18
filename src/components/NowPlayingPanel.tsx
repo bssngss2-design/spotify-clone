@@ -8,11 +8,11 @@ import { useToast } from "@/hooks/useToast";
 import { CreditsModal } from "./CreditsModal";
 
 interface NowPlayingPanelProps {
-  onClose: () => void;
+  onCollapse: () => void;
   onToggleQueue?: () => void;
 }
 
-export function NowPlayingPanel({ onClose, onToggleQueue }: NowPlayingPanelProps) {
+export function NowPlayingPanel({ onCollapse, onToggleQueue }: NowPlayingPanelProps) {
   const { currentSong, getUpcomingSongs, addToQueue } = usePlayer();
   const { toast } = useToast();
   const router = useRouter();
@@ -30,21 +30,29 @@ export function NowPlayingPanel({ onClose, onToggleQueue }: NowPlayingPanelProps
     return () => document.removeEventListener("mousedown", handleClick);
   }, [menuOpen]);
 
-  if (!currentSong) return null;
-
-  const upNext = getUpcomingSongs().slice(0, 4);
+  const upNext = currentSong ? getUpcomingSongs().slice(0, 4) : [];
 
   return (
     <>
     <aside className="w-[320px] h-full bg-[#121212] rounded-lg m-2 ml-0 flex flex-col flex-shrink-0" style={{ overflow: "visible" }}>
       <div className="flex flex-col h-full rounded-lg overflow-hidden">
-        {/* Header */}
-        <div className="px-4 pt-3 pb-1 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <svg className="w-4 h-4 text-[#b3b3b3] flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M15 14.5H5V13h10v1.5zm0-5.75H5v-1.5h10v1.5zM15 3H5V1.5h10V3zM3 3H1V1.5h2V3zm0 5.75H1v-1.5h2v1.5zM3 14.5H1V13h2v1.5z" /></svg>
-            <span className="text-sm font-bold text-white truncate">Now Playing</span>
-          </div>
-          <div className="flex items-center gap-0.5">
+        {/* Header: collapse chevron + current song/playlist name */}
+        <div className="px-3 pt-3 pb-1 flex items-center justify-between flex-shrink-0 gap-2">
+          <button
+            onClick={onCollapse}
+            className="group flex items-center gap-2 min-w-0 flex-1 rounded-md px-2 py-1.5 hover:bg-[#1f1f1f] transition-colors text-left"
+            title="Hide Now Playing view"
+          >
+            <svg className="w-4 h-4 text-[#b3b3b3] group-hover:text-white flex-shrink-0 transition-colors" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="2.75" width="14" height="10.5" rx="1" />
+              <line x1="10.75" y1="3" x2="10.75" y2="13" />
+              <path d="M4.5 6L6.5 8L4.5 10" />
+            </svg>
+            <span className="text-sm font-bold text-white truncate">
+              {currentSong ? currentSong.title : "Nothing playing"}
+            </span>
+          </button>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             {/* ... menu */}
             <div ref={menuRef} className="relative">
               <button onClick={() => setMenuOpen(!menuOpen)} className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="More options">
@@ -109,15 +117,23 @@ export function NowPlayingPanel({ onClose, onToggleQueue }: NowPlayingPanelProps
                 </div>
               )}
             </div>
-            {/* Close / expand */}
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Hide Now Playing view">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M6.53 9.47a.75.75 0 010 1.06l-2.72 2.72h1.018a.75.75 0 010 1.5H1.25v-3.579a.75.75 0 011.5 0v1.018l2.72-2.72a.75.75 0 011.06 0zm2.94-2.94a.75.75 0 010-1.06l2.72-2.72h-1.018a.75.75 0 110-1.5h3.578v3.579a.75.75 0 01-1.5 0V3.81l-2.72 2.72a.75.75 0 01-1.06 0z" /></svg>
-            </button>
           </div>
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-4">
+          {!currentSong ? (
+            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+              <div className="w-16 h-16 rounded-full bg-[#282828] flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M13.426 2.574a2.831 2.831 0 00-4.797 1.55l3.247 3.247a2.831 2.831 0 001.55-4.797zM10.5 8.118l-2.619-2.62A63303.13 63303.13 0 004.74 9.075L2.065 12.12a1.287 1.287 0 001.816 1.816l3.06-2.688 3.56-3.13zM7.12 4.094a4.331 4.331 0 114.786 4.786l-2.974 2.613-3.06 2.689a2.787 2.787 0 01-3.933-3.933l2.676-3.045 2.505-2.11z" />
+                </svg>
+              </div>
+              <p className="text-sm font-semibold text-white mb-1">Nothing playing right now</p>
+              <p className="text-xs text-[#b3b3b3]">Press play to start your session</p>
+            </div>
+          ) : (
+          <>
           {/* Album art */}
           <div className="w-full aspect-square bg-[#282828] rounded-lg mb-4 flex items-center justify-center overflow-hidden">
             {currentSong.cover_url ? (
@@ -193,6 +209,8 @@ export function NowPlayingPanel({ onClose, onToggleQueue }: NowPlayingPanelProps
                 </div>
               ))}
             </div>
+          )}
+          </>
           )}
         </div>
       </div>

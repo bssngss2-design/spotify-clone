@@ -13,7 +13,15 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const { likedCount, isLiked, toggleLike } = useLikedSongs();
   const { playQueue, currentSong } = usePlayer();
-  const [activeFilter, setActiveFilter] = useState("all");
+  type MainFilter = "all" | "music" | "podcasts" | "audiobooks";
+  const [activeFilter, setActiveFilter] = useState<MainFilter>("all");
+
+  const FILTERS: { id: MainFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "music", label: "Music" },
+    { id: "podcasts", label: "Podcasts" },
+    { id: "audiobooks", label: "Audiobooks" },
+  ];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,28 +55,72 @@ export default function HomePage() {
   return (
     <div className="p-6">
       <div className="flex gap-2 mb-6">
-        <button
-          type="button"
-          onClick={() => setActiveFilter("all")}
-          className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === "all" ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}
-        >
-          All
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveFilter("music")}
-          className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === "music" ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}
-        >
-          Music
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveFilter("podcasts")}
-          className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === "podcasts" ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}
-        >
-          Podcasts
-        </button>
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setActiveFilter(f.id)}
+            className={`px-3 py-1.5 text-sm font-semibold rounded-full cursor-pointer transition-colors ${activeFilter === f.id ? "bg-white text-black" : "bg-background-tinted text-white hover:bg-background-highlight"}`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
+
+      {activeFilter === "podcasts" ? (
+        <FilterEmptyState
+          title="You don't follow any podcasts yet"
+          subtitle="Follow podcasts to keep up with new episodes."
+        />
+      ) : activeFilter === "audiobooks" ? (
+        <FilterEmptyState
+          title="You don't have any audiobooks yet"
+          subtitle="Find audiobooks you love in the search."
+        />
+      ) : (
+        <MainFeed
+          quickPl={quickPl}
+          discover={discover}
+          likedCount={likedCount}
+          playlistsEmpty={playlists.length === 0}
+          currentSongId={currentSong?.id}
+          isLiked={isLiked}
+          toggleLike={toggleLike}
+          playQueue={playQueue}
+        />
+      )}
+    </div>
+  );
+}
+
+function FilterEmptyState({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="mt-16 flex flex-col items-center text-center px-6">
+      <div className="w-20 h-20 rounded-full bg-background-tinted flex items-center justify-center mb-6">
+        <svg className="w-10 h-10 text-foreground-subdued" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M8 0a8 8 0 100 16A8 8 0 008 0zM7.25 4.75a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0v-4zM8 11.75A.75.75 0 108 10.25.75.75 0 008 11.75z" />
+        </svg>
+      </div>
+      <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
+      <p className="text-sm text-foreground-subdued max-w-sm">{subtitle}</p>
+    </div>
+  );
+}
+
+type MainFeedProps = {
+  quickPl: Playlist[];
+  discover: HomeDiscover | null;
+  likedCount: number;
+  playlistsEmpty: boolean;
+  currentSongId: string | undefined;
+  isLiked: (id: string) => boolean;
+  toggleLike: (id: string) => void;
+  playQueue: (list: import("@/lib/api").Song[], index?: number) => void;
+};
+
+function MainFeed({ quickPl, discover, likedCount, playlistsEmpty, currentSongId, isLiked, toggleLike, playQueue }: MainFeedProps) {
+  return (
+    <>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-10">
         <Link
@@ -89,10 +141,14 @@ export default function HomePage() {
             href={`/playlist/${playlist.id}`}
             className="flex items-center bg-background-tinted hover:bg-background-highlight rounded overflow-hidden transition-colors group"
           >
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-background-highlight flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 md:w-6 md:h-6 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
-              </svg>
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-background-highlight flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {playlist.cover_url ? (
+                <img src={playlist.cover_url} alt={playlist.name} loading="eager" className="w-full h-full object-cover" />
+              ) : (
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
+                </svg>
+              )}
             </div>
             <span className="px-3 text-sm font-bold text-white truncate">{playlist.name}</span>
           </Link>
@@ -109,10 +165,14 @@ export default function HomePage() {
                 href={`/playlist/${playlist.id}`}
                 className="bg-background-tinted p-4 rounded-md hover:bg-background-highlight transition-colors group min-w-0"
               >
-                <div className="w-full aspect-square bg-gradient-to-br from-[#333] to-[#121212] rounded-md mb-3 flex items-center justify-center shadow-lg">
-                  <svg className="w-12 h-12 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
-                  </svg>
+                <div className="w-full aspect-square bg-gradient-to-br from-[#333] to-[#121212] rounded-md mb-3 flex items-center justify-center shadow-lg overflow-hidden">
+                  {playlist.cover_url ? (
+                    <img src={playlist.cover_url} alt={playlist.name} loading="eager" className="w-full h-full object-cover" />
+                  ) : (
+                    <svg className="w-12 h-12 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
+                    </svg>
+                  )}
                 </div>
                 <p className="text-white font-semibold truncate text-sm">{playlist.name}</p>
                 <p className="text-xs text-foreground-subdued truncate">Playlist</p>
@@ -132,10 +192,14 @@ export default function HomePage() {
                 href={`/playlist/${playlist.id}`}
                 className="bg-background-tinted p-4 rounded-md hover:bg-background-highlight transition-colors group min-w-0"
               >
-                <div className="w-full aspect-square bg-gradient-to-br from-[#1e3264] to-[#e8115b] rounded-md mb-3 flex items-center justify-center shadow-lg">
-                  <svg className="w-12 h-12 text-white/80" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
-                  </svg>
+                <div className="w-full aspect-square bg-gradient-to-br from-[#1e3264] to-[#e8115b] rounded-md mb-3 flex items-center justify-center shadow-lg overflow-hidden">
+                  {playlist.cover_url ? (
+                    <img src={playlist.cover_url} alt={playlist.name} loading="eager" className="w-full h-full object-cover" />
+                  ) : (
+                    <svg className="w-12 h-12 text-white/80" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" />
+                    </svg>
+                  )}
                 </div>
                 <p className="text-white font-semibold truncate text-sm">{playlist.name}</p>
                 <p className="text-xs text-foreground-subdued truncate">Playlist</p>
@@ -156,7 +220,11 @@ export default function HomePage() {
                 className="bg-background-tinted p-4 rounded-md hover:bg-background-highlight transition-colors group min-w-0 text-center"
               >
                 <div className="w-full aspect-square max-w-[160px] mx-auto rounded-full bg-gradient-to-br from-[#450af5] to-[#e8115b] mb-3 flex items-center justify-center shadow-lg overflow-hidden">
-                  <span className="text-2xl font-black text-white/90">{playlist.name.charAt(0)}</span>
+                  {playlist.cover_url ? (
+                    <img src={playlist.cover_url} alt={playlist.name} loading="eager" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl font-black text-white/90">{playlist.name.charAt(0)}</span>
+                  )}
                 </div>
                 <p className="text-white font-semibold truncate text-sm">{playlist.name}</p>
                 <p className="text-xs text-foreground-subdued truncate">Artist</p>
@@ -181,7 +249,7 @@ export default function HomePage() {
                 key={song.id}
                 song={song}
                 index={index}
-                isActive={currentSong?.id === song.id}
+                isActive={currentSongId === song.id}
                 isLiked={isLiked(song.id)}
                 onToggleLike={() => toggleLike(song.id)}
                 onPlay={() => playQueue(discover.recently_played, index)}
@@ -191,12 +259,12 @@ export default function HomePage() {
         </section>
       )}
 
-      {playlists.length === 0 && likedCount === 0 && !discover?.made_for_you.length && (
+      {playlistsEmpty && likedCount === 0 && !discover?.made_for_you.length && (
         <div className="text-center py-20">
           <h2 className="text-2xl font-bold text-white mb-2">Welcome to Spotify</h2>
           <p className="text-foreground-subdued">Run the backend seed script, then log in as demo@demo.com</p>
         </div>
       )}
-    </div>
+    </>
   );
 }

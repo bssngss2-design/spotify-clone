@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from ..deps import get_db, get_current_user
 from ..models import User, Playlist, PlaylistSong, Song
 from ..schemas import PlaylistOut, PlaylistDetailOut, PlaylistSongOut, PlaylistCreate, PlaylistUpdate, PlaylistSongAdd, SongOut
+from ..utils import playlist_cover_map, attach_covers
 
 router = APIRouter()
 
@@ -14,7 +15,8 @@ UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__fil
 @router.get("", response_model=list[PlaylistOut])
 def list_playlists(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     pls = db.query(Playlist).filter(Playlist.user_id == user.id).order_by(Playlist.created_at.desc()).all()
-    return [PlaylistOut.model_validate(p) for p in pls]
+    covers = playlist_cover_map(db, pls)
+    return [PlaylistOut.model_validate(row) for row in attach_covers(pls, covers)]
 
 
 @router.post("", response_model=PlaylistOut)

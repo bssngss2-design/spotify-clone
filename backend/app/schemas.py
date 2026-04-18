@@ -44,6 +44,7 @@ class PlaylistOut(BaseModel):
     user_id: str
     name: str
     category: Optional[str] = None
+    cover_url: Optional[str] = None
     created_at: datetime
 
 class PlaylistSongOut(BaseModel):

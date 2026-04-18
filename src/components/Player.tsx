@@ -9,12 +9,11 @@ import { ConnectPopup } from "./ConnectPopup";
 
 interface PlayerProps {
   activePanel?: string;
-  onToggleNowPlaying?: () => void;
   onToggleQueue?: () => void;
   onToggleLyrics?: () => void;
 }
 
-export function Player({ activePanel, onToggleNowPlaying, onToggleQueue, onToggleLyrics }: PlayerProps) {
+export function Player({ activePanel, onToggleQueue, onToggleLyrics }: PlayerProps) {
   const [connectOpen, setConnectOpen] = useState(false);
   const connectRef = useRef<HTMLDivElement>(null);
   const {
@@ -319,17 +318,6 @@ export function Player({ activePanel, onToggleNowPlaying, onToggleQueue, onToggl
 
         {/* Right controls */}
         <div className="w-[30%] min-w-[180px] flex items-center justify-end gap-1">
-          {/* Now Playing View -- screen with play triangle */}
-          <button
-            onClick={onToggleNowPlaying}
-            className={`w-8 h-8 flex items-center justify-center transition-colors ${activePanel === "now-playing" ? "text-spotify-green" : "text-foreground-subdued hover:text-white"}`}
-            title="Now Playing View"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M1 3v9a1 1 0 001 1h4.5v1.707a.5.5 0 00.854.353L8.707 14H14a1 1 0 001-1V3a1 1 0 00-1-1H2a1 1 0 00-1 1zm1.5.5h11v8h-4.793l-.854.854V11.5H2.5v-8zM6.5 6v4l3.5-2-3.5-2z" />
-            </svg>
-          </button>
-
           {/* Lyrics -- microphone icon */}
           <button
             onClick={onToggleLyrics}

@@ -13,13 +13,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spotify",
+  title: "Spotify - Web Player",
   description: "Spotify - Web Player",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icon-192.svg" }],
+    shortcut: "/icon-192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Spotify",
+    title: "Spotify - Web Player",
   },
 };
 

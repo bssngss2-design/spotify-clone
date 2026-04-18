@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from ..deps import get_db, get_current_user
 from ..models import User, Playlist, PlaylistSong, Song
 from ..schemas import PlaylistOut, SongOut
+from ..utils import playlist_cover_map, attach_covers
 
 router = APIRouter()
 
@@ -17,7 +18,8 @@ def home_discover(user: User = Depends(get_current_user), db: Session = Depends(
             .limit(limit)
             .all()
         )
-        return [PlaylistOut.model_validate(p) for p in rows]
+        covers = playlist_cover_map(db, rows)
+        return [PlaylistOut.model_validate(r) for r in attach_covers(rows, covers)]
 
     recent_pl = (
         db.query(Playlist)

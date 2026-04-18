@@ -7,7 +7,27 @@ import { api, Song } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { TrackRow } from "@/components/TrackRow";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
-import { BROWSE_TILES } from "@/lib/browseCategories";
+import { MUSIC_STYLES, BROWSE_CATEGORIES, type BrowseTile } from "@/lib/browseCategories";
+
+function BrowseTileCard({ tile }: { tile: BrowseTile }) {
+  return (
+    <Link
+      href={`/browse/${encodeURIComponent(tile.key)}`}
+      className={`relative overflow-hidden rounded-lg min-h-[88px] md:min-h-[100px] p-3 md:p-4 flex flex-col justify-between ${tile.className} hover:scale-[1.02] transition-transform shadow-lg`}
+    >
+      <span className="text-white font-bold text-sm md:text-base leading-tight z-10 drop-shadow-md">
+        {tile.label}
+      </span>
+      <img
+        src={tile.image}
+        alt=""
+        aria-hidden
+        loading="eager"
+        className="absolute bottom-2 right-[-8px] w-16 h-16 md:w-20 md:h-20 rounded-md object-cover rotate-[25deg] shadow-lg translate-x-1"
+      />
+    </Link>
+  );
+}
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -45,31 +65,25 @@ function SearchResults() {
   return (
     <div className="p-6">
       {showBrowse && (
-        <section className="mb-10">
-          <h2 className="text-2xl font-bold text-white mb-2">Browse all</h2>
-          <p className="text-foreground-subdued text-sm mb-6">Pick a genre — same library as SS1 + SS2.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-            {BROWSE_TILES.map((tile) => (
-              <Link
-                key={tile.key}
-                href={`/search?genre=${encodeURIComponent(tile.key)}`}
-                className={`relative overflow-hidden rounded-lg min-h-[88px] md:min-h-[100px] p-3 md:p-4 flex flex-col justify-between ${tile.className} hover:scale-[1.02] transition-transform shadow-lg`}
-              >
-                <span className="text-white font-bold text-sm md:text-base leading-tight z-10 drop-shadow-md">
-                  {tile.label}
-                </span>
-                <div className="absolute bottom-2 right-2 w-14 h-14 md:w-16 md:h-16 rounded-md bg-black/20 rotate-[20deg] shadow-md" aria-hidden />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+        <>
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-6">Browse all</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+              {MUSIC_STYLES.map((tile) => (
+                <BrowseTileCard key={tile.key} tile={tile} />
+              ))}
+            </div>
+          </section>
 
-      {showBrowse && (
-        <div className="text-center py-8 border-t border-border">
-          <h3 className="text-lg font-semibold text-white mb-1">Search your library</h3>
-          <p className="text-foreground-subdued text-sm">Find songs, artists, albums — or tap a tile above.</p>
-        </div>
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-6">For you</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+              {BROWSE_CATEGORIES.map((tile) => (
+                <BrowseTileCard key={tile.key} tile={tile} />
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
       {!showBrowse && loading ? (
