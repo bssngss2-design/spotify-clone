@@ -176,7 +176,7 @@ export default function PlaylistPage() {
 
         {/* Add collaborator */}
         <button onClick={() => toast("Collaboration is not available yet")} className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors" title="Invite collaborators">
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16"><path d="M11.757 2.987A4 4 0 118.243 9.013a4 4 0 013.514-6.026zM10 5a2 2 0 10-4 0 2 2 0 004 0zM2.5 12.5a5.5 5.5 0 0111 0V14h-11v-1.5z" /><path d="M14 2v1.5h1.5a.75.75 0 010 1.5H14V6.5a.75.75 0 01-1.5 0V5H11a.75.75 0 010-1.5h1.5V2a.75.75 0 011.5 0z" /></svg>
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 16 16"><circle cx="10" cy="7.5" r="3" /><path d="M4 16c0-3.31 2.69-6 6-6s6 2.69 6 6H4z" /><rect x="2" y="1" width="1" height="4" rx="0.5" /><rect x="0.5" y="2.5" width="4" height="1" rx="0.5" /></svg>
         </button>
 
         {/* Three dots menu */}
@@ -210,7 +210,7 @@ export default function PlaylistPage() {
                 Make public
               </button>
               <button onClick={() => { setMenuOpen(false); toast("Collaboration is not available yet"); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
-                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><path d="M11.757 2.987A4 4 0 118.243 9.013a4 4 0 013.514-6.026zM10 5a2 2 0 10-4 0 2 2 0 004 0zM2.5 12.5a5.5 5.5 0 0111 0V14h-11v-1.5z" /><path d="M14 2v1.5h1.5a.75.75 0 010 1.5H14V6.5a.75.75 0 01-1.5 0V5H11a.75.75 0 010-1.5h1.5V2a.75.75 0 011.5 0z" /></svg>
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 16 16"><circle cx="10" cy="7.5" r="3" /><path d="M4 16c0-3.31 2.69-6 6-6s6 2.69 6 6H4z" /><rect x="2" y="1" width="1" height="4" rx="0.5" /><rect x="0.5" y="2.5" width="4" height="1" rx="0.5" /></svg>
                 Invite collaborators
               </button>
               <button onClick={() => { setMenuOpen(false); toast("Taste profile is not available yet"); }} className="w-full text-left px-3 py-2.5 text-sm text-[#eaeaea] hover:text-white hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">

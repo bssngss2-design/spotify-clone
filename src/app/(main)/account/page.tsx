@@ -53,7 +53,7 @@ export default function AccountPage() {
       {/* Payment */}
       <Section title="Payment">
         <Row icon={<ReceiptIcon />} label="Payment history" onClick={notAvailable} />
-        <Row icon={<CardIcon />} label="Saved payment cards" onClick={notAvailable} />
+        <Row icon={<CardIcon />} label="Saved payment cards" onClick={() => router.push("/account/payment-cards")} />
         <Row icon={<TagIcon />} label="Redeem" onClick={notAvailable} />
       </Section>
 
