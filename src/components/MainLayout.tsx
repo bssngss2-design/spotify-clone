@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { Player } from "./Player";
@@ -43,6 +44,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [nowPlayingCollapsed, setNowPlayingCollapsed] = useState(false);
   const { user, loading } = useAuth();
   const { likedCount } = useLikedSongs();
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -75,6 +77,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       const playlistNumber = playlists.length + 1;
       const data = await api.post<Playlist>("/api/playlists", { name: `My Playlist #${playlistNumber}` });
       setPlaylists((prev) => [data, ...prev]);
+      router.push(`/playlist/${data.id}`);
       return data.id;
     } catch (err) {
       alert("Failed to create playlist: " + (err instanceof Error ? err.message : "Unknown error"));

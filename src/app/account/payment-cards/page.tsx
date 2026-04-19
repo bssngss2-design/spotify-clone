@@ -11,26 +11,11 @@ export default function PaymentCardsPage() {
   const [adding, setAdding] = useState(false);
 
   return (
-    <div className="max-w-2xl mx-auto px-6 pt-8 pb-16 relative">
-      {/* Search bar */}
-      <div className="flex justify-center mb-10">
-        <div className="relative w-full max-w-md">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#b3b3b3]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search account or help articles"
-            onFocus={(e) => { e.target.blur(); toast("Account search is not functional in this demo"); }}
-            className="w-full h-10 bg-[#1a1a1a] rounded-md pl-10 pr-4 text-sm text-white placeholder-[#b3b3b3] focus:outline-none focus:ring-1 focus:ring-white/20"
-          />
-        </div>
-      </div>
-
-      {/* Back button floating on the left */}
+    <div className="relative pt-8 pb-16 px-6">
+      {/* Back button: pinned to viewport left, never overlaps content */}
       <button
         onClick={() => router.back()}
-        className="absolute left-0 top-[100px] w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center text-white hover:bg-[#3a3a3a] transition-colors"
+        className="hidden md:flex absolute left-6 top-[100px] w-9 h-9 rounded-full bg-[#2a2a2a] items-center justify-center text-white hover:bg-[#3a3a3a] transition-colors z-10"
         title="Back"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
@@ -38,9 +23,36 @@ export default function PaymentCardsPage() {
         </svg>
       </button>
 
-      {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-black text-white mb-3">Saved payment cards</h1>
+      <div className="max-w-2xl mx-auto">
+        {/* Search bar */}
+        <div className="flex justify-center mb-10">
+          <div className="relative w-full max-w-md">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#b3b3b3]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search account or help articles"
+              onFocus={(e) => { e.target.blur(); toast("Account search is not functional in this demo"); }}
+              className="w-full h-10 bg-[#1a1a1a] rounded-md pl-10 pr-4 text-sm text-white placeholder-[#b3b3b3] focus:outline-none focus:ring-1 focus:ring-white/20"
+            />
+          </div>
+        </div>
+
+        {/* Inline back button for narrow viewports */}
+        <button
+          onClick={() => router.back()}
+          className="md:hidden mb-4 inline-flex w-9 h-9 rounded-full bg-[#2a2a2a] items-center justify-center text-white hover:bg-[#3a3a3a] transition-colors"
+          title="Back"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M10.53 12.53a.75.75 0 01-1.06 0l-4-4a.75.75 0 010-1.06l4-4a.75.75 0 111.06 1.06L7.06 8l3.47 3.47a.75.75 0 010 1.06z" />
+          </svg>
+        </button>
+
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-black text-white mb-3">Saved payment cards</h1>
         <p className="text-sm text-[#e4e4e4] leading-relaxed">
           Manage your payment details for one-time purchases. To manage payment details for your monthly subscription, go to{" "}
           <Link
@@ -80,6 +92,7 @@ export default function PaymentCardsPage() {
           />
         )}
       </section>
+      </div>
     </div>
   );
 }

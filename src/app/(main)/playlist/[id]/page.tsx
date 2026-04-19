@@ -21,9 +21,10 @@ export default function PlaylistPage() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
-  const [showAddSongs, setShowAddSongs] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [findBarOpen, setFindBarOpen] = useState(true);
+  const [findQuery, setFindQuery] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const { playQueue, currentSong, isPlaying, toggleShuffle, addToQueue } = usePlayer();
@@ -243,12 +244,7 @@ export default function PlaylistPage() {
       </div>
 
       {/* Songs list */}
-      {songs.length === 0 ? (
-        <div className="px-6 py-12 text-center">
-          <p className="text-foreground-subdued mb-4">This playlist is empty. Add some songs!</p>
-          <button onClick={() => setShowAddSongs(true)} className="px-6 py-2 bg-white text-black font-semibold rounded-full hover:scale-105 transition-transform">Add songs</button>
-        </div>
-      ) : (
+      {songs.length > 0 && (
         <div className="px-6">
           <div className="hidden md:grid grid-cols-[16px_4fr_minmax(120px,1fr)_40px] gap-4 px-4 py-2 border-b border-border text-foreground-subdued text-xs uppercase tracking-wider">
             <div className="flex items-center justify-center">#</div>
@@ -278,45 +274,91 @@ export default function PlaylistPage() {
         </div>
       )}
 
-      {/* Add songs modal */}
-      {showAddSongs && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowAddSongs(false)}>
-          <div className="bg-background-elevated rounded-lg w-full max-w-lg max-h-[70vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Add to playlist</h2>
-              <button onClick={() => setShowAddSongs(false)} className="w-8 h-8 flex items-center justify-center text-foreground-subdued hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+      {/* Let's find something for your playlist */}
+      {findBarOpen ? (
+        <div className="mx-6 mt-4 mb-8 border-t border-white/5 pt-6">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h2 className="text-2xl font-black text-white">Let&apos;s find something for your playlist</h2>
+            <button
+              onClick={() => { setFindBarOpen(false); setFindQuery(""); }}
+              className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors flex-shrink-0"
+              title="Close"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="relative max-w-md">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#b3b3b3]" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M7 1a6 6 0 104.472 10.01l3.259 3.26a.75.75 0 101.06-1.06l-3.259-3.26A6 6 0 007 1zM2.5 7a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z" />
+            </svg>
+            <input
+              type="text"
+              value={findQuery}
+              onChange={(e) => setFindQuery(e.target.value)}
+              placeholder="Search for songs or episodes"
+              className="w-full h-10 bg-[#2a2a2a] rounded-md pl-10 pr-10 text-sm text-white placeholder-[#b3b3b3] focus:outline-none focus:ring-1 focus:ring-white/30"
+            />
+            {findQuery && (
+              <button
+                onClick={() => setFindQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-[#b3b3b3] hover:text-white"
+                title="Clear"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M4.646 4.646a.5.5 0 01.708 0L8 7.293l2.646-2.647a.5.5 0 01.708.708L8.707 8l2.647 2.646a.5.5 0 01-.708.708L8 8.707l-2.646 2.647a.5.5 0 01-.708-.708L7.293 8 4.646 5.354a.5.5 0 010-.708z" />
                 </svg>
               </button>
-            </div>
-            <div className="overflow-y-auto max-h-[calc(70vh-60px)]">
-              {availableSongs.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="text-foreground-subdued">{allSongs.length === 0 ? "No songs in your library yet." : "All songs are already in this playlist!"}</p>
-                </div>
-              ) : (
-                <div className="p-2">
-                  {availableSongs.map((song) => (
-                    <button key={song.id} onClick={() => handleAddSong(song.id)} className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-background-tinted transition-colors text-left">
-                      <div className="w-10 h-10 bg-background-tinted rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
-                        {song.cover_url ? <img src={song.cover_url} alt={song.title} className="w-full h-full object-cover rounded" /> : (
-                          <svg className="w-4 h-4 text-foreground-subdued" fill="currentColor" viewBox="0 0 24 24"><path d="M15 4v12.167a3.5 3.5 0 11-3.5-3.5H13V4h2zm-2 10.667h-1.5a1.5 1.5 0 100 3 1.5 1.5 0 001.5-1.5v-1.5z" /></svg>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-white font-medium truncate">{song.title}</p>
-                        <p className="text-sm text-foreground-subdued truncate">{song.artist || "Unknown artist"}</p>
-                      </div>
-                      <svg className="w-4 h-4 text-foreground-subdued flex-shrink-0" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M15.25 8a.75.75 0 01-.75.75H8.75v5.75a.75.75 0 01-1.5 0V8.75H1.5a.75.75 0 010-1.5h5.75V1.5a.75.75 0 011.5 0v5.75h5.75a.75.75 0 01.75.75z" />
-                      </svg>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
           </div>
+
+          {findQuery.trim() && (
+            <div className="mt-4 flex flex-col">
+              {(() => {
+                const q = findQuery.trim().toLowerCase();
+                const results = availableSongs
+                  .filter((s) => s.title.toLowerCase().includes(q) || (s.artist || "").toLowerCase().includes(q))
+                  .slice(0, 12);
+                if (results.length === 0) {
+                  return <p className="text-sm text-[#b3b3b3] mt-2">No matches in your catalog.</p>;
+                }
+                return results.map((song) => (
+                  <div
+                    key={song.id}
+                    className="flex items-center gap-4 px-2 py-2 rounded-md hover:bg-[#1f1f1f] transition-colors group"
+                  >
+                    <div className="w-10 h-10 rounded bg-[#2a2a2a] overflow-hidden flex-shrink-0">
+                      {song.cover_url && (
+                        <img src={song.cover_url} alt={song.title} loading="eager" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white truncate">{song.title}</p>
+                      <p className="text-xs text-[#b3b3b3] truncate">{song.artist || "Unknown artist"}</p>
+                    </div>
+                    <p className="hidden md:block text-sm text-[#b3b3b3] truncate max-w-[240px]">{song.album || ""}</p>
+                    <button
+                      onClick={() => handleAddSong(song.id)}
+                      className="px-4 h-8 rounded-full border border-white text-white text-sm font-bold hover:scale-[1.04] transition-transform flex-shrink-0"
+                    >
+                      Add
+                    </button>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="px-6 pb-10">
+          <button
+            onClick={() => setFindBarOpen(true)}
+            className="text-sm font-bold text-white hover:underline"
+          >
+            Find more
+          </button>
         </div>
       )}
       {showEditModal && playlist && (
