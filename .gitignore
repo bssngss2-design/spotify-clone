@@ -15,6 +15,7 @@ out/
 
 # Production
 build
+dist-electron/
 
 # Misc
 .DS_Store

@@ -27,6 +27,8 @@ class User(Base):
     __tablename__ = "users"
     id = Column(GUID, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String, unique=True, nullable=False, index=True)
+    username = Column(String, unique=True, nullable=True, index=True)
+    role = Column(String(32), nullable=False, default="standard")
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime, default=utcnow)
 
@@ -101,3 +103,16 @@ class PlayerState(Base):
 
     user = relationship("User", back_populates="player_state")
     song = relationship("Song")
+
+
+class AuditLog(Base):
+    """Every mutating /step call gets logged here so verifiers can trace
+    what the agent actually did."""
+    __tablename__ = "audit_log"
+    id = Column(GUID, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tool_name = Column(String(128), nullable=False, index=True)
+    username = Column(String, nullable=True, index=True)
+    parameters = Column(Text, nullable=True)
+    result_code = Column(String(64), nullable=False)
+    message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow, index=True)

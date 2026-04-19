@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
-from .routers import auth, songs, playlists, liked, player, lyrics, youtube, discover
+from .routers import auth, songs, playlists, liked, player, lyrics, youtube, discover, step
 from .database import apply_column_migrations
 
 Base.metadata.create_all(bind=engine)
@@ -31,6 +31,9 @@ app.include_router(player.router, prefix="/api/player", tags=["player"])
 app.include_router(lyrics.router, prefix="/api/lyrics", tags=["lyrics"])
 app.include_router(youtube.router, prefix="/api/youtube", tags=["youtube"])
 app.include_router(discover.router, prefix="/api/discover", tags=["discover"])
+
+# Collinear clone-template tool-server contract (agent-facing, no /api prefix)
+app.include_router(step.router, tags=["tool-server"])
 
 
 @app.get("/api/health")

@@ -5,6 +5,8 @@ import withPWA from "next-pwa";
 const backend = (process.env.BACKEND_URL || "http://127.0.0.1:8080").replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
+  // Bundled by Electron (`npm run desktop`); `server.js` + copied static/public → userData
+  output: "standalone",
   // Empty turbopack config to silence the warning (PWA is disabled in dev anyway)
   turbopack: {},
   async rewrites() {

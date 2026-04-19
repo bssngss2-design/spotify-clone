@@ -186,13 +186,24 @@ export function Sidebar({ playlists, playlistCovers = {}, likedCount, collapsed,
           </button>
           <div className="flex items-center gap-1">
             <div ref={createMenuRef} className="relative">
-              <button onClick={() => setCreateMenuOpen(!createMenuOpen)} className="h-8 px-3 flex items-center gap-1.5 text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] rounded-full transition-colors text-sm font-bold" title="Create playlist or folder">
+              <button
+                data-testid="sidebar-create-menu"
+                onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                className="h-8 px-3 flex items-center gap-1.5 text-[#b3b3b3] hover:text-white hover:bg-[#1a1a1a] rounded-full transition-colors text-sm font-bold"
+                title="Create playlist or folder"
+              >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M15.25 8a.75.75 0 01-.75.75H8.75v5.75a.75.75 0 01-1.5 0V8.75H1.5a.75.75 0 010-1.5h5.75V1.5a.75.75 0 011.5 0v5.75h5.75a.75.75 0 01.75.75z" /></svg>
               </button>
               {createMenuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-[220px] bg-[#282828] rounded-lg shadow-2xl py-2 z-[80]">
-                  <button onClick={async () => { setCreateMenuOpen(false); const id = await onCreatePlaylist?.(); if (id) router.push(`/playlist/${id}`); }}
-                    className="w-full text-left px-3 py-3 hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors">
+                  <button
+                    data-testid="sidebar-create-playlist"
+                    onClick={async () => {
+                      setCreateMenuOpen(false);
+                      await onCreatePlaylist?.();
+                    }}
+                    className="w-full text-left px-3 py-3 hover:bg-[#3e3e3e] flex items-center gap-3 transition-colors"
+                  >
                     <div className="w-10 h-10 bg-[#3e3e3e] rounded-full flex items-center justify-center flex-shrink-0">
                       <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 16 16"><path d="M15 15H1v-1.5h14V15zm0-4.5H1V9h14v1.5zm-14-5V4h11.5V1.5h1.5V7H1V5.5z" /></svg>
                     </div>

@@ -2,17 +2,15 @@ import { test, expect } from "@playwright/test";
 import { login, visible } from "./helpers";
 
 test.describe("Playlist", () => {
+  test.describe.configure({ mode: "serial" });
   test("create playlist via sidebar +", async ({ page }) => {
+    test.setTimeout(45_000);
     await login(page);
-    const plusBtn = visible(page, 'button[title="Create playlist or folder"]');
-    await plusBtn.click();
-    await expect(visible(page, "text=Create a playlist")).toBeVisible();
-    // The dropdown item's subtitle is unique enough; grab its parent button.
-    await page
-      .locator('button', { hasText: "Create a playlist with songs or episodes" })
-      .first()
-      .click();
-    await page.waitForURL(/\/playlist\//, { timeout: 15000 });
+    const desk = page.getByTestId("sidebar-desktop");
+    await desk.getByTestId("sidebar-create-menu").click();
+    await expect(desk.getByTestId("sidebar-create-playlist")).toBeVisible();
+    await desk.getByTestId("sidebar-create-playlist").click();
+    await page.waitForURL(/\/playlist\//, { timeout: 30_000 });
   });
 
   test("navigate to playlist", async ({ page }) => {

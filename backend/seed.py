@@ -13,9 +13,39 @@ from urllib.parse import quote
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+from sqlalchemy import func
+
 from app.database import engine, SessionLocal, Base, apply_column_migrations
 from app.models import User, Song, Playlist, PlaylistSong, LikedSong
 from app.auth import hash_password
+
+# Collinear clone-template seeded users (login by username or email in /step tools)
+ROLE_USERS: list[tuple[str, str, str, str]] = [
+    ("admin@spotify.local", "admin", "admin", "admin"),
+    ("sarah.connor@spotify.local", "sarah.connor", "password", "standard"),
+    ("john.smith@spotify.local", "john.smith", "password", "standard"),
+    ("viewer@spotify.local", "viewer", "password", "viewer"),
+]
+
+
+def ensure_role_users(db) -> None:
+    """Idempotent: create missing playbook users without touching demo data."""
+    for email, username, password, role in ROLE_USERS:
+        existing = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+        if existing:
+            if existing.username != username or existing.role != role:
+                existing.username = username
+                existing.role = role
+        else:
+            db.add(
+                User(
+                    email=email,
+                    username=username,
+                    role=role,
+                    hashed_password=hash_password(password),
+                )
+            )
+    db.commit()
 
 Base.metadata.create_all(bind=engine)
 apply_column_migrations()
@@ -202,6 +232,8 @@ def ensure_demo_mp3() -> tuple[str, int]:
 def main() -> None:
     db = SessionLocal()
     try:
+        ensure_role_users(db)
+
         existing = db.query(User).filter(User.email == DEMO_EMAIL).first()
         if existing and not FORCE:
             print(f"User {DEMO_EMAIL} already exists. Set SEED_FORCE=1 or pass --force to replace.")
@@ -214,7 +246,12 @@ def main() -> None:
         file_url, track_duration_sec = ensure_demo_mp3()
         rng = random.Random(42)
 
-        user = User(email=DEMO_EMAIL, hashed_password=hash_password(DEMO_PASSWORD))
+        user = User(
+            email=DEMO_EMAIL,
+            username="demo",
+            role="standard",
+            hashed_password=hash_password(DEMO_PASSWORD),
+        )
         db.add(user)
         db.commit()
         db.refresh(user)

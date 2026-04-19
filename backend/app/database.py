@@ -27,3 +27,5 @@ def apply_column_migrations() -> None:
 
     _try_alter("ALTER TABLE songs ADD COLUMN genre TEXT")
     _try_alter("ALTER TABLE playlists ADD COLUMN category VARCHAR(32)")
+    _try_alter("ALTER TABLE users ADD COLUMN username VARCHAR")
+    _try_alter("ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'standard' NOT NULL")

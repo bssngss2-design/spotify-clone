@@ -73,6 +73,7 @@ export function TopBar() {
       <div className="flex items-center gap-2 flex-1 max-w-[546px] min-w-0">
         <Link
           href="/"
+          data-testid="topbar-home"
           className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-background-tinted hover:bg-background-highlight transition-colors"
           title="Home"
         >
@@ -99,6 +100,7 @@ export function TopBar() {
           </div>
           <input
             type="text"
+            data-testid="topbar-search"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={handleSearchSubmit}
@@ -117,6 +119,7 @@ export function TopBar() {
           {!searchQuery && (
             <Link
               href="/search"
+              data-testid="topbar-browse"
               title="Browse all"
               className="pr-3 border-l border-[#535353] pl-3 flex items-center"
             >

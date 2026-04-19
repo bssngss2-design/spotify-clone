@@ -130,7 +130,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={false} onToggleCollapse={() => {}} onCreatePlaylist={handleCreatePlaylist} onDeletePlaylist={handleDeletePlaylist} onClose={() => setSidebarOpen(false)} />
           </div>
 
-          <div className="hidden md:block flex-shrink-0">
+          <div className="hidden md:block flex-shrink-0" data-testid="sidebar-desktop">
             <Sidebar playlists={playlists} playlistCovers={playlistCovers} likedCount={likedCount} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} onCreatePlaylist={handleCreatePlaylist} onDeletePlaylist={handleDeletePlaylist} />
           </div>
 

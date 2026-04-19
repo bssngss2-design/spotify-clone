@@ -42,9 +42,9 @@ export async function login(page: Page) {
 /** Full UI login flow -- kept for the auth.spec.ts that exercises the form itself. */
 export async function uiLogin(page: Page) {
   await page.goto("/login");
-  await page.fill('input[type="email"]', DEMO_EMAIL);
-  await page.fill('input[type="password"]', DEMO_PASSWORD);
-  await page.click('button[type="submit"]');
+  await page.getByTestId("login-email").fill(DEMO_EMAIL);
+  await page.getByTestId("login-password").fill(DEMO_PASSWORD);
+  await page.getByTestId("login-submit").click();
   await page.waitForURL("/", { timeout: 20000 });
 }
 
