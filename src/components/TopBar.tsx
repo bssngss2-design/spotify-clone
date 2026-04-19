@@ -131,7 +131,7 @@ export function TopBar() {
       {/* Right: upsells + action buttons + profile */}
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
-          onClick={() => toast("Premium landing page not available yet")}
+          onClick={() => router.push("/premium")}
           className="hidden xl:inline-flex items-center px-4 h-8 rounded-full text-sm font-bold bg-white text-black hover:scale-105 transition-transform whitespace-nowrap"
         >
           Explore Premium
@@ -194,7 +194,10 @@ export function TopBar() {
               <ProfileMenuItem
                 label="Upgrade to Premium"
                 external
-                onClick={() => { setProfileOpen(false); toast("Premium landing page not available yet"); }}
+                onClick={() => {
+                  setProfileOpen(false);
+                  window.open("/premium", "_blank", "noopener,noreferrer");
+                }}
               />
               <ProfileMenuItem
                 label="Support"
@@ -208,7 +211,7 @@ export function TopBar() {
               />
               <ProfileMenuItem
                 label="Settings"
-                onClick={() => { setProfileOpen(false); toast("Settings page not available in this demo"); }}
+                onClick={() => { setProfileOpen(false); router.push("/settings"); }}
               />
 
               <div className="my-1 border-t border-[#3e3e3e]" />

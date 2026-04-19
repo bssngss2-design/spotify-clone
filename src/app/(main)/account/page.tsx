@@ -1,12 +1,14 @@
 "use client";
 
 import { ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AccountPage() {
   const { toast } = useToast();
   const { signOut } = useAuth();
+  const router = useRouter();
 
   const notAvailable = () => toast("Not available in this demo");
 
@@ -20,7 +22,7 @@ export default function AccountPage() {
           <div className="flex-1" />
           <div className="flex justify-end">
             <button
-              onClick={notAvailable}
+              onClick={() => router.push("/premium")}
               className="px-6 py-2 border border-[#727272] rounded-full text-sm font-bold text-white hover:border-white hover:scale-[1.03] transition-all"
             >
               Explore plans
@@ -28,7 +30,7 @@ export default function AccountPage() {
           </div>
         </div>
         <button
-          onClick={notAvailable}
+          onClick={() => router.push("/premium")}
           className="rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-white font-bold hover:scale-[1.02] transition-transform"
           style={{ background: "linear-gradient(135deg, #4f28a5 0%, #8e1b9c 50%, #a91e89 100%)" }}
         >
