@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { Player } from "./Player";
-import { PlayerProvider, usePlayer } from "@/context/PlayerContext";
+import { PlayerProvider } from "@/context/PlayerContext";
 import { NowPlayingPanel } from "./NowPlayingPanel";
 import { QueuePanel } from "./QueuePanel";
 import { LyricsPanel } from "./LyricsPanel";
@@ -16,31 +16,17 @@ import { ToastProvider } from "@/hooks/useToast";
 type RightPanel = "now-playing" | "queue" | "lyrics";
 
 function CollapsedNowPlayingBar({ onExpand }: { onExpand: () => void }) {
-  const { currentSong } = usePlayer();
   return (
-    <aside className="w-14 h-full bg-[#121212] rounded-lg m-2 ml-0 flex flex-col items-center py-3 gap-3 flex-shrink-0">
+    <aside className="w-8 h-full bg-[#121212] rounded-lg m-2 ml-0 flex items-center justify-center flex-shrink-0">
       <button
         onClick={onExpand}
-        className="w-8 h-8 flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors"
+        className="w-8 h-full flex items-center justify-center text-[#b3b3b3] hover:text-white transition-colors"
         title="Show Now Playing view"
       >
-        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="2.75" width="14" height="10.5" rx="1" />
-          <line x1="5.25" y1="3" x2="5.25" y2="13" />
-          <path d="M11.5 6L9.5 8L11.5 10" />
+        <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 4L6 8L10 12" />
         </svg>
       </button>
-      {currentSong?.cover_url ? (
-        <button
-          onClick={onExpand}
-          title={currentSong.title}
-          className="w-10 h-10 rounded overflow-hidden bg-[#282828] hover:scale-105 transition-transform"
-        >
-          <img src={currentSong.cover_url} alt={currentSong.title} className="w-full h-full object-cover" />
-        </button>
-      ) : (
-        <div className="w-10 h-10 rounded bg-[#282828]" />
-      )}
     </aside>
   );
 }

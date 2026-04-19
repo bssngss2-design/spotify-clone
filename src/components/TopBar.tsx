@@ -181,15 +181,15 @@ export function TopBar() {
               <ProfileMenuItem
                 label="Account"
                 external
-                onClick={() => { setProfileOpen(false); toast("Account page not available in this demo"); }}
+                onClick={() => { setProfileOpen(false); router.push("/account"); }}
               />
               <ProfileMenuItem
                 label="Profile"
-                onClick={() => { setProfileOpen(false); toast("Profile page not available in this demo"); }}
+                onClick={() => { setProfileOpen(false); router.push("/profile"); }}
               />
               <ProfileMenuItem
                 label="Recents"
-                onClick={() => { setProfileOpen(false); toast("Recents page not available in this demo"); }}
+                onClick={() => { setProfileOpen(false); router.push("/recents"); }}
               />
               <ProfileMenuItem
                 label="Upgrade to Premium"
