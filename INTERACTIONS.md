@@ -139,11 +139,13 @@ Full inventory of what a user can do across the app.
 Custom top bar, no sidebars / player.
 - Search bar (stub toast).
 - Back button (floating left / inline on narrow screens).
+- Saved cards list: each row shows `first4 •••• •••• last4 | MM / YY  Cardholder` + `Remove` action. Persisted in `localStorage` (`spotify_saved_cards`), syncs across tabs.
 - `Add card` → inline form:
-  - Card number (auto-formats `0000 0000 0000 0000`, 16-digit cap).
-  - Expiry (auto-formats `MM / YY`).
-  - Security code + `?` help circle.
-  - Save (toast, closes form) / Cancel (closes form).
+  - Card number (auto-formats `0000 0000 0000 0000`, 16-digit cap, validated 13–16 digits).
+  - Cardholder name (required, ≥ 2 chars).
+  - Expiry (auto-formats `MM / YY`, past-date rejected).
+  - Security code + `?` help circle (3–4 digits).
+  - Save button is disabled until every field is valid; on submit the card is persisted, the form closes, and a "Card saved (demo only — no real charge)" toast appears. Cancel closes the form without saving.
 
 ## Settings (`/settings`)
 - Account: Edit login methods pill.

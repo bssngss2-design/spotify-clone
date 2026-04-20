@@ -260,7 +260,7 @@ function AddCardForm({
 
   const digits = number.replace(/\D/g, "");
   const errors: ValidationState = {
-    number: digits.length < 13 || digits.length > 19 ? "Enter a 13–19 digit card number" : null,
+    number: digits.length < 13 || digits.length > 16 ? "Enter a 13–16 digit card number" : null,
     expiry: validateExpiry(expiry),
     cvc: cvc.length < 3 || cvc.length > 4 ? "Enter a 3 or 4 digit security code" : null,
     name: name.trim().length < 2 ? "Enter the cardholder name" : null,
@@ -322,7 +322,8 @@ function AddCardForm({
           inputMode="numeric"
           autoComplete="cc-number"
           value={number}
-          onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim())}
+          maxLength={19}
+          onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim())}
           placeholder="0000 0000 0000 0000"
           className={`w-full h-12 bg-transparent border rounded-md pl-14 pr-4 text-white placeholder-[#5a5a5a] focus:outline-none ${
             showError("number") ? "border-[#e22134] focus:border-[#e22134]" : "border-[#2a2a2a] focus:border-white/50"
@@ -354,6 +355,7 @@ function AddCardForm({
             inputMode="numeric"
             autoComplete="cc-exp"
             value={expiry}
+            maxLength={7}
             onChange={(e) => setExpiry(e.target.value.replace(/\D/g, "").slice(0, 4).replace(/(\d{2})(\d{1,2})?/, (_, a, b) => b ? `${a} / ${b}` : a))}
             placeholder="MM / YY"
             className={`w-full h-12 bg-transparent border rounded-md px-4 text-white placeholder-[#5a5a5a] focus:outline-none ${
@@ -370,6 +372,7 @@ function AddCardForm({
               inputMode="numeric"
               autoComplete="cc-csc"
               value={cvc}
+              maxLength={4}
               onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
               className={`w-full h-12 bg-transparent border rounded-md px-4 pr-10 text-white placeholder-[#5a5a5a] focus:outline-none ${
                 showError("cvc") ? "border-[#e22134] focus:border-[#e22134]" : "border-[#2a2a2a] focus:border-white/50"
