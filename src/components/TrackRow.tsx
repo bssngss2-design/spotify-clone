@@ -155,7 +155,14 @@ export function TrackRow({ song, index, isActive, isLiked, onToggleLike, onPlay,
           {onToggleLike && (
             <button onClick={(e) => { e.stopPropagation(); onToggleLike(); }}
               className={`w-7 h-7 items-center justify-center transition-colors ${isLiked ? "flex text-spotify-green" : "hidden group-hover:flex text-[#b3b3b3] hover:text-white"}`}>
-              {isLiked ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2z" /></svg> : <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" clipRule="evenodd" d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2zm2.876.297A3.073 3.073 0 002.5 5.59a3.073 3.073 0 00.002 3.395L8 14.085l5.498-5.1A3.073 3.073 0 0013.5 5.59a3.073 3.073 0 00-5.066-2.294L8 3.723l-.434-.427A3.073 3.073 0 004.566 2.297z" /></svg>}
+              {isLiked ? (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2z" /></svg>
+              ) : (
+                // Unliked: single-path stroked heart for uniform outline.
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" viewBox="0 0 16 16">
+                  <path d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2z" />
+                </svg>
+              )}
             </button>
           )}
           <span className="text-sm text-[#b3b3b3] w-10 text-right tabular-nums">{formatDuration(song.duration)}</span>
