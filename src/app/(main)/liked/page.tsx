@@ -56,7 +56,7 @@ export default function LikedSongsPage() {
         <div className="flex items-end gap-6">
           <div className="w-52 h-52 rounded shadow-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-[#450af5] to-[#c4efd9]">
             <svg className="w-20 h-20 text-white" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M15.724 4.22A4.313 4.313 0 0012.192.814a4.269 4.269 0 00-3.622 1.13.837.837 0 01-1.14 0 4.272 4.272 0 00-6.38 5.57l5.593 7.434a1.12 1.12 0 001.733-.074l.033-.044 5.315-7.315z" />
+              <path d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">

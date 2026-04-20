@@ -1,14 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/useToast";
+
+const STORAGE_KEY = "spotify_saved_cards";
+const CARDS_EVENT = "saved-cards-changed";
+
+type SavedCard = {
+  id: string;
+  name: string;
+  first4: string;
+  last4: string;
+  expiry: string; // "MM / YY"
+  brand: string;
+};
+
+function readCards(): SavedCard[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (c): c is SavedCard =>
+        c &&
+        typeof c === "object" &&
+        typeof c.id === "string" &&
+        typeof c.name === "string" &&
+        typeof c.first4 === "string" &&
+        typeof c.last4 === "string" &&
+        typeof c.expiry === "string" &&
+        typeof c.brand === "string"
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeCards(cards: SavedCard[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    window.dispatchEvent(new Event(CARDS_EVENT));
+  } catch {
+    // ignore
+  }
+}
+
+function subscribeCards(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", callback);
+  window.addEventListener(CARDS_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(CARDS_EVENT, callback);
+  };
+}
+
+// Stable module-scoped empty array so getServerSnapshot returns the same
+// reference on every call (required by useSyncExternalStore to avoid the
+// "result of getServerSnapshot should be cached" infinite-loop warning).
+const EMPTY_CARDS: SavedCard[] = [];
+
+// Cache the last read result so getCardsSnapshot returns a stable reference
+// whenever the underlying localStorage value hasn't changed.
+let cardsCache: SavedCard[] = EMPTY_CARDS;
+let cardsCacheKey = "";
+function getCardsSnapshot(): SavedCard[] {
+  if (typeof window === "undefined") return EMPTY_CARDS;
+  const raw = window.localStorage.getItem(STORAGE_KEY) ?? "";
+  if (raw !== cardsCacheKey) {
+    cardsCacheKey = raw;
+    cardsCache = readCards();
+  }
+  return cardsCache;
+}
+function getServerSnapshot(): SavedCard[] {
+  return EMPTY_CARDS;
+}
+
+function detectBrand(digitsOnly: string): string {
+  if (/^4/.test(digitsOnly)) return "Visa";
+  if (/^(5[1-5]|2(2[2-9]|[3-6]|7[0-1]|720))/.test(digitsOnly)) return "Mastercard";
+  if (/^3[47]/.test(digitsOnly)) return "American Express";
+  if (/^(6011|65|64[4-9])/.test(digitsOnly)) return "Discover";
+  return "Card";
+}
 
 export default function PaymentCardsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [adding, setAdding] = useState(false);
+  const cards = useSyncExternalStore(subscribeCards, getCardsSnapshot, getServerSnapshot);
+
+  const handleSave = useCallback(
+    (card: Omit<SavedCard, "id">) => {
+      const next: SavedCard[] = [
+        ...getCardsSnapshot(),
+        { ...card, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
+      ];
+      writeCards(next);
+      setAdding(false);
+      toast("Card saved (demo only — no real charge)");
+    },
+    [toast]
+  );
+
+  const handleRemove = useCallback(
+    (id: string) => {
+      const next = getCardsSnapshot().filter((c) => c.id !== id);
+      writeCards(next);
+      toast("Card removed");
+    },
+    [toast]
+  );
 
   return (
     <div className="relative pt-8 pb-16 px-6">
@@ -72,35 +180,112 @@ export default function PaymentCardsPage() {
           <LockIcon />
         </div>
 
-        {!adding ? (
-          <div className="border border-[#2a2a2a] rounded-md px-4 py-3 flex items-center gap-3">
-            <CardBrandIcon />
-            <span className="text-[#b3b3b3] text-sm font-semibold tracking-wider">•••</span>
-            <span className="text-white text-sm font-semibold">0000 | MM/YY</span>
-            <div className="flex-1" />
+        <div className="space-y-2">
+          {cards.map((card) => (
+            <div
+              key={card.id}
+              className="border border-[#2a2a2a] rounded-md px-4 py-3 flex items-center gap-3"
+            >
+              <CardBrandIcon />
+              <span className="text-white text-sm font-semibold tracking-wider">
+                {card.first4} •••• •••• {card.last4}
+              </span>
+              <span className="text-[#b3b3b3] text-sm">|</span>
+              <span className="text-white text-sm font-semibold">{card.expiry}</span>
+              <span className="text-[#b3b3b3] text-sm truncate">{card.name}</span>
+              <div className="flex-1" />
+              <button
+                onClick={() => handleRemove(card.id)}
+                className="text-[#b3b3b3] hover:text-white text-xs font-semibold"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+
+          {!adding ? (
             <button
               onClick={() => setAdding(true)}
-              className="text-[#1ed760] font-bold text-sm hover:underline"
+              className="w-full border border-dashed border-[#2a2a2a] rounded-md px-4 py-3 flex items-center gap-3 text-left hover:border-[#3a3a3a] transition-colors"
             >
-              Add card
+              <CardBrandIcon />
+              <span className="text-[#b3b3b3] text-sm font-semibold tracking-wider">•••</span>
+              <span className="text-white text-sm font-semibold">0000 | MM/YY</span>
+              <div className="flex-1" />
+              <span className="text-[#1ed760] font-bold text-sm hover:underline">
+                Add card
+              </span>
             </button>
-          </div>
-        ) : (
-          <AddCardForm
-            onCancel={() => setAdding(false)}
-            onSave={() => { setAdding(false); toast("Card saved (demo only — no real charge)"); }}
-          />
-        )}
+          ) : (
+            <AddCardForm
+              onCancel={() => setAdding(false)}
+              onSave={handleSave}
+            />
+          )}
+        </div>
       </section>
       </div>
     </div>
   );
 }
 
-function AddCardForm({ onCancel, onSave }: { onCancel: () => void; onSave: () => void }) {
+type ValidationState = {
+  number: string | null;
+  expiry: string | null;
+  cvc: string | null;
+  name: string | null;
+};
+
+function validateExpiry(expiry: string): string | null {
+  // expected format "MM / YY" (possibly partial)
+  const match = expiry.match(/^(\d{2})\s*\/\s*(\d{2})$/);
+  if (!match) return "Enter expiry as MM / YY";
+  const month = parseInt(match[1], 10);
+  const year = parseInt(match[2], 10);
+  if (isNaN(month) || month < 1 || month > 12) return "Invalid month";
+  // Compare against today's YY/MM (assume 20YY)
+  const now = new Date();
+  const curYear = now.getFullYear() % 100;
+  const curMonth = now.getMonth() + 1;
+  if (year < curYear || (year === curYear && month < curMonth)) return "Card is expired";
+  return null;
+}
+
+function AddCardForm({
+  onCancel,
+  onSave,
+}: {
+  onCancel: () => void;
+  onSave: (card: { name: string; first4: string; last4: string; expiry: string; brand: string }) => void;
+}) {
   const [number, setNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
+  const [name, setName] = useState("");
+  const [attempted, setAttempted] = useState(false);
+
+  const digits = number.replace(/\D/g, "");
+  const errors: ValidationState = {
+    number: digits.length < 13 || digits.length > 16 ? "Enter a 13–16 digit card number" : null,
+    expiry: validateExpiry(expiry),
+    cvc: cvc.length < 3 || cvc.length > 4 ? "Enter a 3 or 4 digit security code" : null,
+    name: name.trim().length < 2 ? "Enter the cardholder name" : null,
+  };
+  const isValid = !errors.number && !errors.expiry && !errors.cvc && !errors.name;
+
+  const showError = (field: keyof ValidationState) => attempted && errors[field];
+
+  const handleSaveClick = () => {
+    setAttempted(true);
+    if (!isValid) return;
+    onSave({
+      name: name.trim(),
+      first4: digits.slice(0, 4),
+      last4: digits.slice(-4),
+      expiry,
+      brand: detectBrand(digits),
+    });
+  };
 
   return (
     <div className="border border-[#2a2a2a] rounded-md p-6">
@@ -140,12 +325,32 @@ function AddCardForm({ onCancel, onSave }: { onCancel: () => void; onSave: () =>
         </span>
         <input
           type="text"
+          inputMode="numeric"
+          autoComplete="cc-number"
           value={number}
+          maxLength={19}
           onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim())}
           placeholder="0000 0000 0000 0000"
-          className="w-full h-12 bg-transparent border border-[#2a2a2a] rounded-md pl-14 pr-4 text-white placeholder-[#5a5a5a] focus:outline-none focus:border-white/50"
+          className={`w-full h-12 bg-transparent border rounded-md pl-14 pr-4 text-white placeholder-[#5a5a5a] focus:outline-none ${
+            showError("number") ? "border-[#e22134] focus:border-[#e22134]" : "border-[#2a2a2a] focus:border-white/50"
+          }`}
         />
       </div>
+      {showError("number") && <p className="mt-1 text-xs text-[#e22134]">{errors.number}</p>}
+
+      {/* Cardholder name */}
+      <label className="block text-sm font-bold text-white mt-5 mb-2">Cardholder name</label>
+      <input
+        type="text"
+        autoComplete="cc-name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Name on card"
+        className={`w-full h-12 bg-transparent border rounded-md px-4 text-white placeholder-[#5a5a5a] focus:outline-none ${
+          showError("name") ? "border-[#e22134] focus:border-[#e22134]" : "border-[#2a2a2a] focus:border-white/50"
+        }`}
+      />
+      {showError("name") && <p className="mt-1 text-xs text-[#e22134]">{errors.name}</p>}
 
       {/* Expiry + Security */}
       <div className="grid grid-cols-2 gap-4 mt-5">
@@ -153,20 +358,31 @@ function AddCardForm({ onCancel, onSave }: { onCancel: () => void; onSave: () =>
           <label className="block text-sm font-bold text-white mb-2">Expiry date</label>
           <input
             type="text"
+            inputMode="numeric"
+            autoComplete="cc-exp"
             value={expiry}
+            maxLength={7}
             onChange={(e) => setExpiry(e.target.value.replace(/\D/g, "").slice(0, 4).replace(/(\d{2})(\d{1,2})?/, (_, a, b) => b ? `${a} / ${b}` : a))}
             placeholder="MM / YY"
-            className="w-full h-12 bg-transparent border border-[#2a2a2a] rounded-md px-4 text-white placeholder-[#5a5a5a] focus:outline-none focus:border-white/50"
+            className={`w-full h-12 bg-transparent border rounded-md px-4 text-white placeholder-[#5a5a5a] focus:outline-none ${
+              showError("expiry") ? "border-[#e22134] focus:border-[#e22134]" : "border-[#2a2a2a] focus:border-white/50"
+            }`}
           />
+          {showError("expiry") && <p className="mt-1 text-xs text-[#e22134]">{errors.expiry}</p>}
         </div>
         <div>
           <label className="block text-sm font-bold text-white mb-2">Security code</label>
           <div className="relative">
             <input
               type="text"
+              inputMode="numeric"
+              autoComplete="cc-csc"
               value={cvc}
+              maxLength={4}
               onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              className="w-full h-12 bg-transparent border border-[#2a2a2a] rounded-md px-4 pr-10 text-white placeholder-[#5a5a5a] focus:outline-none focus:border-white/50"
+              className={`w-full h-12 bg-transparent border rounded-md px-4 pr-10 text-white placeholder-[#5a5a5a] focus:outline-none ${
+                showError("cvc") ? "border-[#e22134] focus:border-[#e22134]" : "border-[#2a2a2a] focus:border-white/50"
+              }`}
             />
             <button
               type="button"
@@ -176,6 +392,7 @@ function AddCardForm({ onCancel, onSave }: { onCancel: () => void; onSave: () =>
               ?
             </button>
           </div>
+          {showError("cvc") && <p className="mt-1 text-xs text-[#e22134]">{errors.cvc}</p>}
         </div>
       </div>
 
@@ -187,8 +404,14 @@ function AddCardForm({ onCancel, onSave }: { onCancel: () => void; onSave: () =>
       {/* Save */}
       <div className="flex flex-col items-center gap-4 mt-8">
         <button
-          onClick={onSave}
-          className="h-12 px-14 rounded-full bg-[#1ed760] text-black font-bold text-base hover:scale-[1.04] transition-transform"
+          onClick={handleSaveClick}
+          disabled={!isValid}
+          aria-disabled={!isValid}
+          className={`h-12 px-14 rounded-full font-bold text-base transition-transform ${
+            isValid
+              ? "bg-[#1ed760] text-black hover:scale-[1.04]"
+              : "bg-[#2a2a2a] text-[#6a6a6a] cursor-not-allowed"
+          }`}
         >
           Save
         </button>

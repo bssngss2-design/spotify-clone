@@ -70,6 +70,8 @@ JWT_SECRET=change-me
 - **Player:** Shuffle, repeat (off/all/one), next/previous, volume, mute, fullscreen, queue with insert-next, persisted player state.
 - **Playlists:** Create, rename, delete, reorder, add/remove songs, cover upload.
 - **Liked Songs:** Heart toggle, Liked Songs page.
+- **Followed artists:** Follow / Unfollow button on each artist page and in the Now Playing credits panel. Persisted client-side via `useFollowedArtists` (localStorage, cross-tab sync).
+- **Saved payment cards** (`/account/payment-cards`): Add / Remove cards with per-field validation (13–16 digit card number, MM / YY expiry with past-date check, 3–4 digit CVC, cardholder name ≥ 2 chars). Save button is disabled until the form is valid. Cards persist to `localStorage` under `spotify_saved_cards`; the list renders with first-4 / last-4 visible and the middle masked. Demo-only — no real charge.
 - **Discover:** Home sections — Made for you, New releases, Popular artists, Recently played.
 - **Browse:** Two-level flow. Search page shows a 29-genre + 6-category tile grid. Tiles open a genre landing (`/browse/[key]`) with `Popular Playlists`, `New Releases`, `Hits`, `For every mood`, and `Popular Artists` sections. Themed playlist cards drill into `/browse/[key]/[slug]` (e.g. Hot Country, 90s Country, Late Night Country); album and artist cards reuse `/album/[name]` and `/artist/[name]`.
 - **Lyrics:** `/api/lyrics/{song_id}` endpoint.
