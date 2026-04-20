@@ -60,11 +60,17 @@ function subscribeCards(callback: () => void) {
   };
 }
 
-// Cache the last read result so useSyncExternalStore has a stable snapshot.
-let cardsCache: SavedCard[] = [];
+// Stable module-scoped empty array so getServerSnapshot returns the same
+// reference on every call (required by useSyncExternalStore to avoid the
+// "result of getServerSnapshot should be cached" infinite-loop warning).
+const EMPTY_CARDS: SavedCard[] = [];
+
+// Cache the last read result so getCardsSnapshot returns a stable reference
+// whenever the underlying localStorage value hasn't changed.
+let cardsCache: SavedCard[] = EMPTY_CARDS;
 let cardsCacheKey = "";
 function getCardsSnapshot(): SavedCard[] {
-  if (typeof window === "undefined") return cardsCache;
+  if (typeof window === "undefined") return EMPTY_CARDS;
   const raw = window.localStorage.getItem(STORAGE_KEY) ?? "";
   if (raw !== cardsCacheKey) {
     cardsCacheKey = raw;
@@ -73,7 +79,7 @@ function getCardsSnapshot(): SavedCard[] {
   return cardsCache;
 }
 function getServerSnapshot(): SavedCard[] {
-  return [];
+  return EMPTY_CARDS;
 }
 
 function detectBrand(digitsOnly: string): string {
