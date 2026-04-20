@@ -125,14 +125,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setShuffledIndices([0]);
   }, []);
 
-  // Add song to queue -- inserts right after currently playing (or after last queued song)
+  // Add song to queue -- inserts right after currently playing (or after last queued song).
+  // If nothing is playing, the added song becomes the current track so the Queue panel
+  // (which only renders with a currentSong) actually updates.
   const addToQueue = useCallback((song: Song) => {
-    const offset = queueInsertOffset.current;
-    queueInsertOffset.current = offset + 1;
+    if (!song) return;
     setState((prev) => {
+      if (prev.currentIndex < 0 || prev.queue.length === 0) {
+        queueInsertOffset.current = 0;
+        setShuffledIndices([0]);
+        return {
+          ...prev,
+          queue: [song],
+          currentIndex: 0,
+          currentSong: song,
+        };
+      }
+
+      const offset = queueInsertOffset.current;
+      queueInsertOffset.current = offset + 1;
       const insertAt = prev.currentIndex + 1 + offset;
       const newQueue = [...prev.queue];
       newQueue.splice(insertAt, 0, song);
+
+      // Keep shuffledIndices consistent so the newly added song also shows up
+      // in "Up next" when shuffle is on.
+      setShuffledIndices((prevShuffled) => {
+        if (prevShuffled.length === 0) return prevShuffled;
+        const shifted = prevShuffled.map((i) => (i >= insertAt ? i + 1 : i));
+        const currentPos = shifted.indexOf(prev.currentIndex);
+        if (currentPos < 0) return [...shifted, insertAt];
+        const next = [...shifted];
+        next.splice(currentPos + 1 + offset, 0, insertAt);
+        return next;
+      });
+
       return { ...prev, queue: newQueue };
     });
   }, []);

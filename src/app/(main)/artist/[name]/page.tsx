@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api, Song } from "@/lib/api";
 import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { useFollowedArtists } from "@/hooks/useFollowedArtists";
 import { TrackRow } from "@/components/TrackRow";
 
 export default function ArtistPage() {
@@ -14,6 +15,8 @@ export default function ArtistPage() {
   const [loading, setLoading] = useState(true);
   const { playQueue, currentSong } = usePlayer();
   const { isLiked, toggleLike } = useLikedSongs();
+  const { isFollowing, toggleFollow } = useFollowedArtists();
+  const following = isFollowing(artistName);
 
   const fetchSongs = useCallback(async () => {
     setLoading(true);
@@ -51,17 +54,29 @@ export default function ArtistPage() {
         </div>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 flex items-center gap-4 mb-6">
         {songs.length > 0 && (
           <button
             onClick={() => playQueue(songs)}
-            className="w-14 h-14 bg-spotify-green rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-xl mb-6"
+            aria-label="Play all"
+            className="w-14 h-14 bg-spotify-green rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-xl"
           >
             <svg className="w-6 h-6 text-black ml-1" fill="currentColor" viewBox="0 0 16 16">
               <path d="M3 1.713a.7.7 0 011.05-.607l10.89 6.288a.7.7 0 010 1.212L4.05 14.894A.7.7 0 013 14.288V1.713z" />
             </svg>
           </button>
         )}
+        <button
+          onClick={() => toggleFollow(artistName)}
+          aria-pressed={following}
+          className={`h-9 px-5 rounded-full border text-sm font-bold transition-all ${
+            following
+              ? "border-white text-white hover:scale-[1.04]"
+              : "border-[#727272] text-white hover:border-white hover:scale-[1.04]"
+          }`}
+        >
+          {following ? "Following" : "Follow"}
+        </button>
       </div>
 
       {songs.length === 0 ? (

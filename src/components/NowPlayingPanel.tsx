@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePlayer } from "@/context/PlayerContext";
 import { useLikedSongs } from "@/hooks/useLikedSongs";
+import { useFollowedArtists } from "@/hooks/useFollowedArtists";
 import { useToast } from "@/hooks/useToast";
 import { CreditsModal } from "./CreditsModal";
 
@@ -17,6 +18,7 @@ export function NowPlayingPanel({ onCollapse, onToggleQueue }: NowPlayingPanelPr
   const { toast } = useToast();
   const router = useRouter();
   const { isLiked, toggleLike } = useLikedSongs();
+  const { isFollowing, toggleFollow } = useFollowedArtists();
   const [menuOpen, setMenuOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [shareSubOpen, setShareSubOpen] = useState(false);
@@ -185,7 +187,17 @@ export function NowPlayingPanel({ onCollapse, onToggleQueue }: NowPlayingPanelPr
                   <p className="text-sm text-white font-medium">{currentSong.artist}</p>
                   <p className="text-xs text-[#b3b3b3]">Main Artist</p>
                 </div>
-                <button onClick={() => toast("Follow is not available yet")} className="px-3 py-1 text-xs font-bold text-white border border-[#727272] rounded-full hover:border-white hover:scale-105 transition-all">Follow</button>
+                <button
+                  onClick={() => { toggleFollow(currentSong.artist); toast(isFollowing(currentSong.artist) ? `Unfollowed ${currentSong.artist}` : `Following ${currentSong.artist}`); }}
+                  aria-pressed={isFollowing(currentSong.artist)}
+                  className={`px-3 py-1 text-xs font-bold rounded-full transition-all hover:scale-105 ${
+                    isFollowing(currentSong.artist)
+                      ? "border border-white text-white"
+                      : "border border-[#727272] text-white hover:border-white"
+                  }`}
+                >
+                  {isFollowing(currentSong.artist) ? "Following" : "Follow"}
+                </button>
               </div>
             )}
           </div>

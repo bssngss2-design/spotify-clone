@@ -129,7 +129,7 @@ function MainFeed({ quickPl, discover, likedCount, playlistsEmpty, currentSongId
         >
           <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-[#450af5] to-[#c4efd9] flex items-center justify-center flex-shrink-0">
             <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M15.724 4.22A4.313 4.313 0 0012.192.814a4.269 4.269 0 00-3.622 1.13.837.837 0 01-1.14 0 4.272 4.272 0 00-6.38 5.57l5.593 7.434a1.12 1.12 0 001.733-.074l.033-.044 5.315-7.315z" />
+              <path d="M1.69 2A4.582 4.582 0 018 2.023 4.583 4.583 0 0114.31 2a4.583 4.583 0 01.003 6.208L8 15.024 1.694 8.21A4.583 4.583 0 011.69 2z" />
             </svg>
           </div>
           <span className="px-3 text-sm font-bold text-white truncate">Liked Songs</span>
