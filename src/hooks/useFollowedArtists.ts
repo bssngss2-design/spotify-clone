@@ -60,7 +60,14 @@ export function useFollowedArtists() {
       }
       writeStorage([...next]);
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("followed-artists-changed"));
+        // Defer the cross-instance dispatch to a microtask so sibling hook
+        // instances don't call setState synchronously while React is still
+        // rendering the component that invoked toggleFollow. Prevents the
+        // "Cannot update a component while rendering a different component"
+        // warning in dev.
+        queueMicrotask(() => {
+          window.dispatchEvent(new Event("followed-artists-changed"));
+        });
       }
       return next;
     });
