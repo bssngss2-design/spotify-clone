@@ -9,12 +9,49 @@ import { v4 as uuidv4 } from "uuid";
 
 const execAsync = promisify(exec);
 
-// Create admin client lazily to avoid build-time errors
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+async function uploadWithRetry(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  bucket: string,
+  pathName: string,
+  data: Buffer,
+  contentType: string,
+  attempts = 4
+) {
+  let lastError: { message: string } | null = null;
+  for (let i = 0; i < attempts; i++) {
+    const { error } = await supabase.storage.from(bucket).upload(pathName, data, {
+      contentType,
+      upsert: true,
+    });
+    if (!error) return;
+    lastError = error;
+    const transient =
+      /fetch failed|network|timeout|ECONNRESET|ETIMEDOUT|503|502|504/i.test(
+        error.message
+      );
+    console.warn(
+      `Upload to ${bucket}/${pathName} failed (attempt ${i + 1}/${attempts}):`,
+      error.message
+    );
+    if (!transient || i === attempts - 1) break;
+    await sleep(1000 * (i + 1));
+  }
+  throw new Error(`Upload failed: ${lastError?.message || "unknown error"}`);
 }
 
 export async function POST(request: NextRequest) {
@@ -110,21 +147,23 @@ export async function POST(request: NextRequest) {
       if (thumbFile && existsSync(thumbFile)) {
         const thumbData = await readFile(thumbFile);
         const thumbPath = `${userId}/${songId}-cover.jpg`;
-        
-        const { error: thumbError } = await supabase.storage
-          .from("covers")
-          .upload(thumbPath, thumbData, {
-            contentType: "image/jpeg",
-            upsert: true,
-          });
 
-        if (!thumbError) {
+        try {
+          await uploadWithRetry(
+            supabase,
+            "covers",
+            thumbPath,
+            thumbData,
+            "image/jpeg"
+          );
           const { data: thumbUrlData } = supabase.storage
             .from("covers")
             .getPublicUrl(thumbPath);
           coverUrl = thumbUrlData.publicUrl;
+        } catch (e) {
+          console.log("Cover upload failed, continuing without it:", e);
         }
-        
+
         await unlink(thumbFile).catch(() => {});
       }
     } catch (e) {
@@ -135,24 +174,28 @@ export async function POST(request: NextRequest) {
     const audioData = await readFile(outputPath);
     const audioPath = `${userId}/${songId}.mp3`;
 
-    // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from("audio")
-      .upload(audioPath, audioData, {
-        contentType: "audio/mpeg",
-        upsert: true,
-      });
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
-    }
+    // Upload to Supabase Storage (retry on transient network errors)
+    await uploadWithRetry(
+      supabase,
+      "audio",
+      audioPath,
+      audioData,
+      "audio/mpeg"
+    );
 
     // Get signed URL for the audio
-    const { data: signedUrlData } = await supabase.storage
-      .from("audio")
-      .createSignedUrl(audioPath, 60 * 60 * 24 * 365);
-
-    const fileUrl = signedUrlData?.signedUrl;
+    let fileUrl: string | null = null;
+    for (let i = 0; i < 3; i++) {
+      const { data: signedUrlData, error: signErr } = await supabase.storage
+        .from("audio")
+        .createSignedUrl(audioPath, 60 * 60 * 24 * 365);
+      if (signedUrlData?.signedUrl) {
+        fileUrl = signedUrlData.signedUrl;
+        break;
+      }
+      console.warn("Signed URL failed:", signErr?.message);
+      await sleep(500 * (i + 1));
+    }
 
     if (!fileUrl) {
       throw new Error("Failed to get signed URL");

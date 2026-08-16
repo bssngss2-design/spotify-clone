@@ -1,17 +1,30 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, startTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createClient, Song } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { SongList } from "@/components/SongList";
 import { UploadZone } from "@/components/UploadZone";
 import { YouTubeSearch } from "@/components/YouTubeSearch";
+import { PlaylistImport } from "@/components/PlaylistImport";
 
 export default function HomePage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, signOut } = useAuth();
   const supabase = createClient();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch {
+      // ignore
+    }
+    router.push("/login");
+    router.refresh();
+  };
 
   // Fetch songs
   const fetchSongs = useCallback(async () => {
@@ -33,9 +46,14 @@ export default function HomePage() {
     fetchSongs();
   }, [fetchSongs]);
 
-  // Handle song upload complete
+  // Handle song upload complete (transition so import UI isn't blocked by list updates)
   const handleUploadComplete = (newSong: Song) => {
-    setSongs((prev) => [newSong, ...prev]);
+    startTransition(() => {
+      setSongs((prev) => {
+        if (prev.some((s) => s.id === newSong.id)) return prev;
+        return [newSong, ...prev];
+      });
+    });
   };
 
   // Handle song delete
@@ -67,12 +85,15 @@ export default function HomePage() {
           </p>
         </div>
         <button
-          onClick={signOut}
+          onClick={handleSignOut}
           className="px-4 py-2 text-sm text-foreground-subdued hover:text-white transition-colors"
         >
           Sign out
         </button>
       </div>
+
+      {/* Import Spotify / Exportify CSV */}
+      <PlaylistImport onSongAdded={handleUploadComplete} />
 
       {/* YouTube Search */}
       <YouTubeSearch onSongAdded={handleUploadComplete} />

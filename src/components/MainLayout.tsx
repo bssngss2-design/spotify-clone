@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Player } from "./Player";
 import { InstallPrompt } from "./InstallPrompt";
+import { ImportStatusBanner } from "./ImportStatusBanner";
 import { PlayerProvider } from "@/context/PlayerContext";
 import { createClient, Playlist } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +35,14 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   useEffect(() => {
     fetchPlaylists();
+  }, [fetchPlaylists]);
+
+  useEffect(() => {
+    const onRefresh = () => {
+      fetchPlaylists();
+    };
+    window.addEventListener("playlists:refresh", onRefresh);
+    return () => window.removeEventListener("playlists:refresh", onRefresh);
   }, [fetchPlaylists]);
 
   // Create new playlist
@@ -120,6 +129,9 @@ export function MainLayout({ children }: MainLayoutProps) {
             {children}
           </main>
         </div>
+
+        {/* CSV import progress — survives navigating away from Home */}
+        <ImportStatusBanner />
 
         {/* Player */}
         <Player />

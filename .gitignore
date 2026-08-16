@@ -5,6 +5,7 @@ node_modules
 
 # Testing
 coverage
+test-results/
 
 # Next.js
 .next/
@@ -41,3 +42,13 @@ public/sw.js
 public/workbox-*.js
 public/sw.js.map
 public/workbox-*.js.map
+
+# Playwright browsers (local only)
+.playwright-browsers/
+
+# Local / leftover backend & DBs
+backend/
+*.db
+__pycache__/
+*.pyc
+supabase/.temp/

@@ -25,7 +25,12 @@ export default function PlaylistPage() {
   // Offline download state
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState({ done: 0, total: 0 });
+  const [downloadProgress, setDownloadProgress] = useState({
+    done: 0,
+    total: 0,
+    skipped: 0,
+    phase: "" as string,
+  });
 
   const { user } = useAuth();
   const { playQueue, currentSong, isPlaying } = usePlayer();
@@ -169,31 +174,68 @@ export default function PlaylistPage() {
     checkDownloaded();
   }, [songs]);
 
-  // Download entire playlist for offline
+  // Download entire playlist for offline — skip songs already cached
   const handleDownload = async () => {
     if (songs.length === 0 || isDownloading) return;
 
     setIsDownloading(true);
-    setDownloadProgress({ done: 0, total: songs.length });
+    setDownloadProgress({
+      done: 0,
+      total: songs.length,
+      skipped: 0,
+      phase: "Checking what’s already downloaded…",
+    });
+
+    const cachedFlags = await Promise.all(songs.map((s) => isAudioCached(s.id)));
+    const alreadyCached = songs.filter((_, i) => cachedFlags[i]);
+    const toDownload = songs.filter((_, i) => !cachedFlags[i]);
+
+    setDownloadProgress({
+      done: 0,
+      total: toDownload.length,
+      skipped: alreadyCached.length,
+      phase:
+        toDownload.length === 0
+          ? "All songs already downloaded"
+          : "Saving missing songs for offline…",
+    });
+
+    if (toDownload.length === 0) {
+      setIsDownloading(false);
+      setIsDownloaded(true);
+      return;
+    }
 
     let completed = 0;
     let failed = 0;
-    for (const song of songs) {
+    for (const song of toDownload) {
       try {
-        const alreadyCached = await isAudioCached(song.id);
-        if (!alreadyCached) {
-          await cacheAudioFile(song.id, song.file_url);
+        // Re-check in case it was cached mid-run
+        if (await isAudioCached(song.id)) {
+          completed++;
+          setDownloadProgress({
+            done: completed,
+            total: toDownload.length,
+            skipped: alreadyCached.length,
+            phase: "Saving missing songs for offline…",
+          });
+          continue;
         }
+        await cacheAudioFile(song.id, song.file_url);
       } catch {
         failed++;
       }
       completed++;
-      setDownloadProgress({ done: completed, total: songs.length });
+      setDownloadProgress({
+        done: completed,
+        total: toDownload.length,
+        skipped: alreadyCached.length,
+        phase: "Saving missing songs for offline…",
+      });
     }
 
     setIsDownloading(false);
 
-    // Re-check actual state
     const results = await Promise.all(songs.map((s) => isAudioCached(s.id)));
     setIsDownloaded(results.every(Boolean));
 
@@ -326,9 +368,23 @@ export default function PlaylistPage() {
         {/* Download for offline */}
         {songs.length > 0 && (
           isDownloading ? (
-            <div className="flex items-center gap-2 text-spotify-green text-sm font-medium">
-              <div className="w-5 h-5 border-2 border-spotify-green border-t-transparent rounded-full animate-spin" />
-              <span>{downloadProgress.done}/{downloadProgress.total}</span>
+            <div className="flex items-center gap-2 text-spotify-green text-sm font-medium min-w-0 flex-1 max-w-md">
+              <div className="w-5 h-5 border-2 border-spotify-green border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              <div className="min-w-0">
+                <div>
+                  {downloadProgress.total === 0
+                    ? "Done"
+                    : `${downloadProgress.done}/${downloadProgress.total}`}
+                  {downloadProgress.skipped > 0
+                    ? ` · skipped ${downloadProgress.skipped} cached`
+                    : ""}
+                </div>
+                {downloadProgress.phase && (
+                  <div className="text-xs text-foreground-subdued font-normal whitespace-normal break-words">
+                    {downloadProgress.phase}
+                  </div>
+                )}
+              </div>
             </div>
           ) : isDownloaded ? (
             <button
